@@ -553,8 +553,7 @@
     </div>
 
     <div class="container">
-        <h1>🔐 DH Key Exchange</h1>
-        <p class="subtitle">Secure Password Generator for IT Professionals</p>
+        <h1>🔐 DH Key Exchange Password Generator</h1>
 
         <!-- Welcome Banner (shown when partner token detected in URL) -->
         <div id="welcomeWrapper" class="hidden">
@@ -763,7 +762,7 @@
             partnerPublicKeyRaw: null,
             partnerKeypairId: null,
             partnerCurve: null,
-            myKeypairIdForPartner: null, // The keypair ID that partner should reference
+            myKeypairIdForPartner: null,
             constraints: null
         };
 
@@ -845,10 +844,10 @@
 
             if (constraints.excluded) {
                 const excluded = constraints.excluded.split('');
-                charset = charset.split('').filter(c => !excluded.includes(c)).join('');
+                return Array.from(charset).filter(c => !excluded.includes(c));
+            } else {
+                return Array.from(charset);
             }
-
-            return charset;
         }
 
         function copyToClipboard(text, buttonId) {
@@ -948,13 +947,18 @@
                     public: publicKey
                 },
                 privateKey,
-                bits
+                256
             );
-
-            return new Uint8Array(sharedSecret);
+            var result = new Uint8Array(sharedSecret);
+            while (result.length * 8 < bits) {
+                // If the derived secret is shorter than needed, we can hash it to expand
+                const hash = await crypto.subtle.digest('SHA-256', result);
+                result = new Uint8Array([...result, ...new Uint8Array(hash)]);
+            }
+            return result;
         }
 
-        function generateVerificationToken(myPublicKeyRaw, partnerPublicKeyRaw, bits = 24) {
+        function generateVerificationToken(myPublicKeyRaw, partnerPublicKeyRaw, constraints, bits = 24) {
             const myBytes = new Uint8Array(myPublicKeyRaw);
             const partnerBytes = new Uint8Array(partnerPublicKeyRaw);
 
@@ -966,6 +970,29 @@
                 const myByte = i < myBytes.length ? myBytes[i] : 0;
                 const partnerByte = i < partnerBytes.length ? partnerBytes[i] : 0;
                 xorResult[i] = myByte ^ partnerByte;
+            }
+
+            // Incorporate constraints into the verification token
+            // Serialize constraints to bytes
+            const constraintsString = JSON.stringify({
+                minLength: constraints.minLength,
+                maxLength: constraints.maxLength,
+                uppercase: constraints.uppercase,
+                lowercase: constraints.lowercase,
+                numbers: constraints.numbers,
+                special: constraints.special,
+                similar: constraints.similar,
+                whitespace: constraints.whitespace,
+                diacritics: constraints.diacritics,
+                emoji: constraints.emoji,
+                excluded: constraints.excluded
+            });
+            const encoder = new TextEncoder();
+            const constraintsBytes = encoder.encode(constraintsString);
+
+            // XOR constraints into the result
+            for (let i = 0; i < constraintsBytes.length; i++) {
+                xorResult[i % xorResult.length] ^= constraintsBytes[i];
             }
 
             // Divide into blocks and XOR them together
@@ -1415,16 +1442,16 @@
                     <p style="margin-bottom: 10px;"><strong>🆔 Keypair ID:</strong> ${parsed.keypairId}</p>
                     <p style="margin-bottom: 10px;"><strong>📐 Curve:</strong> ${parsed.curve}</p>
                     <p style="margin-bottom: 10px;"><strong>📏 Length:</strong> ${parsed.constraints.minLength}-${parsed.constraints.maxLength} chars</p>
-                    <div style="margin-top: 10px;">
-                        <div style="margin-bottom: 5px;">🔤 Uppercase: ${parsed.constraints.uppercase ? '✓' : '✗'}</div>
-                        <div style="margin-bottom: 5px;">🔡 Lowercase: ${parsed.constraints.lowercase ? '✓' : '✗'}</div>
-                        <div style="margin-bottom: 5px;">🔢 Numbers: ${parsed.constraints.numbers ? '✓' : '✗'}</div>
-                        <div style="margin-bottom: 5px;">🔣 Special: ${parsed.constraints.special ? '✓' : '✗'}</div>
-                        <div style="margin-bottom: 5px;">👁️ Similar: ${parsed.constraints.similar ? '✓' : '✗'}</div>
-                        <div style="margin-bottom: 5px;">␣ Whitespace: ${parsed.constraints.whitespace ? '✓' : '✗'}</div>
-                        <div style="margin-bottom: 5px;">é Diacritics: ${parsed.constraints.diacritics ? '✓' : '✗'}</div>
-                        <div style="margin-bottom: 5px;">😀 Emoji: ${parsed.constraints.emoji ? '✓' : '✗'}</div>
-                        ${parsed.constraints.excluded ? `<div>🚫 Excluded: ${parsed.constraints.excluded}</div>` : ''}
+                    <div style="margin-top: 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 5px;">
+                        <div>🔤 Uppercase: ${parsed.constraints.uppercase ? '✓' : '✗'}</div>
+                        <div>🔡 Lowercase: ${parsed.constraints.lowercase ? '✓' : '✗'}</div>
+                        <div>🔢 Numbers: ${parsed.constraints.numbers ? '✓' : '✗'}</div>
+                        <div>🔣 Special: ${parsed.constraints.special ? '✓' : '✗'}</div>
+                        <div>👁️ Similar: ${parsed.constraints.similar ? '✓' : '✗'}</div>
+                        <div>␣ Whitespace: ${parsed.constraints.whitespace ? '✓' : '✗'}</div>
+                        <div>é Diacritics: ${parsed.constraints.diacritics ? '✓' : '✗'}</div>
+                        <div>😀 Emoji: ${parsed.constraints.emoji ? '✓' : '✗'}</div>
+                        ${parsed.constraints.excluded ? `<div style="grid-column: 1 / -1;">🚫 Excluded: ${parsed.constraints.excluded}</div>` : ''}
                     </div>
                 </div>
             `;
@@ -1466,7 +1493,7 @@
             const password = derivePassword(sharedSecret, charset, targetLength);
 
             // Generate verification token
-            const verificationToken = generateVerificationToken(activeKeypair.publicKeyRaw, state.partnerPublicKeyRaw, 24);
+            const verificationToken = generateVerificationToken(activeKeypair.publicKeyRaw, state.partnerPublicKeyRaw, state.constraints, 24);
 
             // Display results
             document.getElementById('sharedPassword').textContent = password;
@@ -1580,9 +1607,12 @@
         // Update share section when constraints change
         ['minLength', 'maxLength', 'charUppercase', 'charLowercase', 'charNumbers', 'charSpecial', 'charSimilar', 'charWhitespace', 'charDiacritics', 'charEmoji', 'excludedChars'].forEach(id => {
             const element = document.getElementById(id);
-            element.addEventListener('change', function() {
+            element.addEventListener('change', async function() {
                 if (state.activeKeypairId) {
                     updateShareSection();
+                    if (state.partnerPublicKey) {
+                        await processPartnerToken(document.getElementById('partnerToken').value.trim());
+                    }
                 }
             });
         });
