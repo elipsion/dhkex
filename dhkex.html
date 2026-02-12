@@ -42,49 +42,6 @@
             font-size: 0.9em;
         }
 
-        .workflow {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 30px;
-            padding: 15px;
-            background: #f8f9fa;
-            border-radius: 8px;
-        }
-
-        .workflow-step {
-            flex: 1;
-            text-align: center;
-            padding: 10px;
-            position: relative;
-        }
-
-        .workflow-step:not(:last-child)::after {
-            content: '→';
-            position: absolute;
-            right: -15px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: #667eea;
-            font-size: 1.5em;
-        }
-
-        .workflow-step.active {
-            background: #667eea;
-            color: white;
-            border-radius: 6px;
-        }
-
-        .workflow-step .step-number {
-            font-weight: bold;
-            font-size: 1.2em;
-            display: block;
-            margin-bottom: 5px;
-        }
-
-        .workflow-step .step-label {
-            font-size: 0.85em;
-        }
-
         .section {
             margin-bottom: 25px;
             padding: 20px;
@@ -260,6 +217,7 @@
             border: 2px solid #4caf50;
             border-radius: 8px;
             margin-top: 20px;
+            margin-bottom: 20px;
         }
 
         .result-box h3 {
@@ -268,7 +226,7 @@
         }
 
         .result-item {
-            margin-bottom: 15px;
+            margin-bottom: 0;
         }
 
         .result-item label {
@@ -342,19 +300,12 @@
         }
 
         @media (max-width: 768px) {
-            .workflow {
-                flex-direction: column;
-            }
-
-            .workflow-step:not(:last-child)::after {
-                content: '↓';
-                right: 50%;
-                top: auto;
-                bottom: -15px;
-            }
-
             .range-inputs {
                 grid-template-columns: 1fr;
+            }
+            
+            .section > div[style*="grid-template-columns"] {
+                grid-template-columns: 1fr !important;
             }
         }
     </style>
@@ -364,161 +315,186 @@
         <h1>🔐 DH Key Exchange</h1>
         <p class="subtitle">Secure Password Generator for IT Professionals</p>
 
-        <div class="workflow">
-            <div class="workflow-step" id="step1">
-                <span class="step-number">1</span>
-                <span class="step-label">Configure & Generate</span>
-            </div>
-            <div class="workflow-step" id="step2">
-                <span class="step-number">2</span>
-                <span class="step-label">Exchange Tokens</span>
-            </div>
-            <div class="workflow-step" id="step3">
-                <span class="step-number">3</span>
-                <span class="step-label">Derive Password</span>
+        <!-- Section 0: Results (at top) -->
+        <div id="resultsSection" class="hidden">
+            <div class="result-box">
+                <h3>✨ Shared Password Generated</h3>
+                <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 15px;">
+                    <div class="result-item">
+                        <label>Shared Password</label>
+                        <div class="result-value">
+                            <span id="sharedPassword"></span>
+                            <button class="copy-button" id="copyPassword">Copy</button>
+                        </div>
+                    </div>
+
+                    <div class="result-item">
+                        <label>Verification Token</label>
+                        <div class="result-value verification-token">
+                            <span id="verificationToken"></span>
+                            <button class="copy-button" id="copyVerification">Copy</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="alert alert-warning" style="margin-top: 15px;">
+                    ⚠️ Compare the verification token with your partner to ensure you both derived the same password. The tokens should match exactly.
+                </div>
             </div>
         </div>
 
         <!-- Section 1: Password Constraints -->
         <div class="section">
             <h2>⚙️ Password Constraints</h2>
-            <div class="section-content">
-                <div class="form-group">
-                    <label>Password Length Range</label>
-                    <div class="range-inputs">
-                        <div>
-                            <input type="number" id="minLength" min="4" max="128" value="16" placeholder="Min">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <!-- Your Constraints -->
+                <div>
+                    <h3 style="color: #667eea; margin-bottom: 15px; font-size: 1.1em;">Your Constraints</h3>
+                    <div class="section-content">
+                        <div class="form-group">
+                            <label>Password Length Range</label>
+                            <div class="range-inputs">
+                                <div>
+                                    <input type="number" id="minLength" min="4" max="128" value="16" placeholder="Min">
+                                </div>
+                                <div>
+                                    <input type="number" id="maxLength" min="4" max="128" value="32" placeholder="Max">
+                                </div>
+                            </div>
                         </div>
-                        <div>
-                            <input type="number" id="maxLength" min="4" max="128" value="32" placeholder="Max">
+
+                        <div class="form-group">
+                            <label>Character Sets</label>
+                            <div class="checkbox-group">
+                                <div class="checkbox-item">
+                                    <input type="checkbox" id="charUppercase" checked>
+                                    <label for="charUppercase">Uppercase (A-Z)</label>
+                                </div>
+                                <div class="checkbox-item">
+                                    <input type="checkbox" id="charLowercase" checked>
+                                    <label for="charLowercase">Lowercase (a-z)</label>
+                                </div>
+                                <div class="checkbox-item">
+                                    <input type="checkbox" id="charNumbers" checked>
+                                    <label for="charNumbers">Numbers (0-9)</label>
+                                </div>
+                                <div class="checkbox-item">
+                                    <input type="checkbox" id="charSpecial" checked>
+                                    <label for="charSpecial">Special (!@#$...)</label>
+                                </div>
+                                <div class="checkbox-item">
+                                    <input type="checkbox" id="charSimilar">
+                                    <label for="charSimilar">Similar (O0Il1)</label>
+                                </div>
+                                <div class="checkbox-item">
+                                    <input type="checkbox" id="charWhitespace">
+                                    <label for="charWhitespace">Whitespace</label>
+                                </div>
+                                <div class="checkbox-item">
+                                    <input type="checkbox" id="charDiacritics">
+                                    <label for="charDiacritics">Diacritics (àéîóü)</label>
+                                </div>
+                                <div class="checkbox-item">
+                                    <input type="checkbox" id="charEmoji">
+                                    <label for="charEmoji">Emoji (😀👍✨)</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Excluded Characters (optional)</label>
+                            <input type="text" id="excludedChars" placeholder="e.g., O0Il1">
                         </div>
                     </div>
                 </div>
 
-                <div class="form-group">
-                    <label>Character Sets</label>
-                    <div class="checkbox-group">
-                        <div class="checkbox-item">
-                            <input type="checkbox" id="charUppercase" checked>
-                            <label for="charUppercase">Uppercase (A-Z)</label>
-                        </div>
-                        <div class="checkbox-item">
-                            <input type="checkbox" id="charLowercase" checked>
-                            <label for="charLowercase">Lowercase (a-z)</label>
-                        </div>
-                        <div class="checkbox-item">
-                            <input type="checkbox" id="charNumbers" checked>
-                            <label for="charNumbers">Numbers (0-9)</label>
-                        </div>
-                        <div class="checkbox-item">
-                            <input type="checkbox" id="charSpecial" checked>
-                            <label for="charSpecial">Special (!@#$...)</label>
+                <!-- Partner Constraints -->
+                <div id="partnerConstraintsPanel">
+                    <h3 style="color: #ffa726; margin-bottom: 15px; font-size: 1.1em;">Partner's Constraints</h3>
+                    <div class="section-content">
+                        <div id="partnerConstraintsContent" class="alert alert-info">
+                            Waiting for partner's parameters...
                         </div>
                     </div>
-                </div>
-
-                <div class="form-group">
-                    <label>Excluded Characters (optional)</label>
-                    <input type="text" id="excludedChars" placeholder="e.g., O0Il1 (confusing characters)">
                 </div>
             </div>
         </div>
 
-        <!-- Section 2: Key Generation -->
+        <!-- Section 3: Exchange Parameters -->
+        <div class="section">
+            <h2>🔄 Exchange Parameters</h2>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <!-- Share Your Parameters -->
+                <div id="shareSection" class="hidden">
+                    <h3 style="color: #667eea; margin-bottom: 15px; font-size: 1.1em;">📤 Your Token</h3>
+                    <div class="section-content">
+                        <div class="form-group">
+                            <label>Parameter Token</label>
+                            <div class="token-display" id="myToken"></div>
+                            <div class="button-group" style="margin-top: 10px;">
+                                <button class="copy-button" id="copyToken">Copy Token</button>
+                                <button class="copy-button" id="copyLink">Copy Link</button>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Direct Link</label>
+                            <input type="text" id="shareLink" readonly style="font-size: 0.8em;">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Load Partner's Parameters -->
+                <div>
+                    <h3 style="color: #ffa726; margin-bottom: 15px; font-size: 1.1em;">📥 Partner's Token</h3>
+                    <div class="section-content">
+                        <div class="form-group">
+                            <label>Partner's Parameter Token</label>
+                            <textarea id="partnerToken" placeholder="Paste partner's token here..."></textarea>
+                        </div>
+
+                        <div class="button-group">
+                            <button id="loadPartnerToken">Load Partner's Token</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 4: Key Generation (at bottom) -->
         <div class="section">
             <h2>🔑 Key Generation</h2>
-            <div class="section-content">
-                <div class="form-group">
-                    <label>Elliptic Curve</label>
-                    <select id="ecCurve">
-                        <option value="P-256" selected>P-256 (Default)</option>
-                        <option value="P-384">P-384</option>
-                        <option value="P-521">P-521</option>
-                    </select>
-                </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <!-- Key Settings -->
+                <div>
+                    <h3 style="color: #667eea; margin-bottom: 15px; font-size: 1.1em;">Key Settings</h3>
+                    <div class="section-content">
+                        <div class="form-group">
+                            <label>Elliptic Curve</label>
+                            <select id="ecCurve">
+                                <option value="P-256" selected>P-256 (Default)</option>
+                                <option value="P-384">P-384</option>
+                                <option value="P-521">P-521</option>
+                            </select>
+                        </div>
 
-                <div class="button-group">
-                    <button id="generateKeypair">Generate My Keypair</button>
-                </div>
-
-                <div id="keypairListContainer" class="hidden">
-                    <label>My Keypairs</label>
-                    <div id="keypairList" class="keypair-list"></div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Section 3: Share Parameters -->
-        <div class="section" id="shareSection" class="hidden">
-            <h2>📤 Share Your Parameters</h2>
-            <div class="section-content">
-                <div class="alert alert-info">
-                    Send this token to the other party. They will use it to generate their keypair and send you their token back.
-                </div>
-
-                <div class="form-group">
-                    <label>Parameter Token</label>
-                    <div class="token-display" id="myToken"></div>
-                    <div class="button-group" style="margin-top: 10px;">
-                        <button class="copy-button" id="copyToken">Copy Token</button>
-                        <button class="copy-button" id="copyLink">Copy Link</button>
+                        <div class="button-group">
+                            <button id="generateKeypair">Generate New Keypair</button>
+                        </div>
                     </div>
                 </div>
 
-                <div class="form-group">
-                    <label>Direct Link (includes token in URL)</label>
-                    <div class="link-display">
-                        <input type="text" id="shareLink" readonly>
+                <!-- Key History -->
+                <div>
+                    <h3 style="color: #667eea; margin-bottom: 15px; font-size: 1.1em;">Key History</h3>
+                    <div class="section-content">
+                        <div id="keypairListContainer" class="hidden">
+                            <div id="keypairList" class="keypair-list"></div>
+                        </div>
+                        <div id="noKeypairsMessage" class="alert alert-info">
+                            No keypairs generated yet. Select a curve to auto-generate one.
+                        </div>
                     </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Section 4: Load Partner's Parameters -->
-        <div class="section">
-            <h2>📥 Load Partner's Parameters</h2>
-            <div class="section-content">
-                <div class="form-group">
-                    <label>Partner's Parameter Token</label>
-                    <textarea id="partnerToken" placeholder="Paste the token you received from your partner here..."></textarea>
-                </div>
-
-                <div class="button-group">
-                    <button id="loadPartnerToken">Load Partner's Token</button>
-                </div>
-
-                <div id="partnerInfoContainer" class="hidden">
-                    <div class="alert alert-success">
-                        ✓ Partner's parameters loaded successfully!
-                    </div>
-                    <div id="partnerInfo"></div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Section 5: Results -->
-        <div id="resultsSection" class="hidden">
-            <div class="result-box">
-                <h3>✨ Shared Password Generated</h3>
-                
-                <div class="result-item">
-                    <label>Shared Password</label>
-                    <div class="result-value">
-                        <span id="sharedPassword"></span>
-                        <button class="copy-button" id="copyPassword">Copy</button>
-                    </div>
-                </div>
-
-                <div class="result-item">
-                    <label>Verification Token (compare with partner)</label>
-                    <div class="result-value verification-token">
-                        <span id="verificationToken"></span>
-                        <button class="copy-button" id="copyVerification">Copy</button>
-                    </div>
-                </div>
-
-                <div class="alert alert-warning">
-                    ⚠️ Compare the verification token with your partner to ensure you both derived the same password. The tokens should match exactly.
                 </div>
             </div>
         </div>
@@ -535,6 +511,7 @@
             partnerPublicKeyRaw: null,
             partnerKeypairId: null,
             partnerCurve: null,
+            myKeypairIdForPartner: null, // The keypair ID that partner should reference
             constraints: null
         };
 
@@ -578,6 +555,10 @@
                 lowercase: document.getElementById('charLowercase').checked,
                 numbers: document.getElementById('charNumbers').checked,
                 special: document.getElementById('charSpecial').checked,
+                similar: document.getElementById('charSimilar').checked,
+                whitespace: document.getElementById('charWhitespace').checked,
+                diacritics: document.getElementById('charDiacritics').checked,
+                emoji: document.getElementById('charEmoji').checked,
                 excluded: document.getElementById('excludedChars').value
             };
         }
@@ -588,6 +569,27 @@
             if (constraints.lowercase) charset += 'abcdefghijklmnopqrstuvwxyz';
             if (constraints.numbers) charset += '0123456789';
             if (constraints.special) charset += '!@#$%^&*()_+-=[]{}|;:,.<>?';
+            if (constraints.similar) charset += 'O0Il1';
+            if (constraints.whitespace) charset += ' \t';
+            if (constraints.diacritics) charset += 'àáâäèéêëìíîïòóôöùúûüçñãõÀÁÂÄÈÉÊËÌÍÎÏÒÓÔÖÙÚÛÜÇÑÃÕ';
+            if (constraints.emoji) {
+              charset += '😀😁😂😃😄😅😆😇😈😉😊😋😌😍😎😏😐😑😒😓😔😕😖😗😘😙😚😛😜😝😞😟😠😡😢😣😤😥😦😧😨😩😪😫😬😭😮😯😰😱😲😳😴😵😶😷😸😹😺😻😼😽😾😿🙀🙁🙂🙃🙄';
+              charset += '🙅🙆🙇🙈🙉🙊🙋🙌🙍🙎🙏';
+              charset += '🚀🚁🚂🚃🚄🚅🚆🚇🚈🚉🚊🚋🚌🚍🚎🚏🚐🚑🚒🚓🚔🚕🚖🚗🚘🚙🚚🚛🚜🚝🚞🚟🚠🚡🚢🚣🚤🚥🚦🚧🚨🚩🚪🚫🚬🚭🚮🚯🚰🚱🚲🚳🚴🚵🚶🚷🚸🚹🚺🚻🚼🚽🚾🚿';
+              charset += '🛀🛁🛂🛃🛄🛅';
+              charset += '🤐🤑🤒🤓🤔🤕🤖🤗🤘🤙🤚🤛🤜🤝🤞🤟🤠🤡🤢🤣🤤🤥🤦🤧🤨🤩🤪🤫🤬🤭🤮🤯🤰🤱🤲🤳🤴🤵🤶🤷🤸🤹🤺🤼🤽🤾';
+              charset += '🥀🥁🥂🥃🥄🥅🥇🥈🥉🥊🥋🥌🥍🥎🥏🥐🥑🥒🥓🥔🥕🥖🥗🥘🥙🥚🥛🥜🥝🥞🥟🥠🥡🥢🥣🥤🥥🥦🥧🥨🥩🥪🥫🥬🥭🥮🥯🥰🥱🥳🥴🥵🥶🥺🥻🥼🥽🥾🥿';
+              charset += '🦀🦁🦂🦃🦄🦅🦆🦇🦈🦉🦊🦋🦌🦍🦎🦏🦐🦑🦒🦓🦔🦕🦖🦗🦘🦙🦚🦛🦜🦝🦞🦟🦠🦡🦢🦸🦹🦺🦻🦼🦽🦾🦿';
+              charset += '🧀🧁🧂🧐🧑🧒🧓🧔🧕🧖🧗🧘🧙🧚🧛🧜🧝🧞🧟🧠🧡🧢🧣🧤🧥🧦🧧🧨🧩🧪🧫🧬🧭🧮🧯🧰🧱🧲🧳🧴🧵🧶🧷🧸🧹🧺🧻🧼🧽🧾🧿';
+              charset += '🌀🌁🌂🌃🌄🌅🌆🌇🌈🌉🌊🌋🌌🌍🌎🌏🌐🌑🌒🌓🌔🌕🌖🌗🌘🌙🌚🌛🌜🌝🌞🌟🌠🌭🌮🌯🌰🌱🌲🌳🌴🌵🌶🌷🌸🌹🌺🌻🌼🌽🌾🌿🍀🍁🍂🍃';
+              charset += '🍄🍅🍆🍇🍈🍉🍊🍋🍌🍍🍎🍏🍐🍑🍒🍓🍔🍕🍖🍗🍘🍙🍚🍛🍜🍝🍞🍟🍠🍡🍢🍣🍤🍥🍦🍧🍨🍩🍪🍫🍬🍭🍮🍯🍰🍱🍲🍳🍴🍵🍶🍷🍸🍹🍺🍻🍼🎁🎂🎃🎄🎅🎆🎇🎈🎉🎊🎋🎌🎍🎎🎏🎐🎑🎒🎓';
+              charset += '🎠🎡🎢🎣🎤🎥🎦🎧🎨🎩🎪🎫🎬🎭🎮🎯🎰🎱🎲🎳🎴🎵🎶🎷🎸🎹🎺🎻🎼🎽🎾🎿🏀🏁🏂🏃🏄🏅🏆🏇🏈🏉🏊🏋🏌🏏🏐🏑🏒🏓🏡🏢🏣🏤🏥🏦🏧🏨🏩🏪🏫🏬🏭🏮🏯🏰';
+              charset += '🐀🐁🐂🐃🐄🐅🐆🐇🐈🐉🐊🐋🐌🐍🐎🐏🐐🐑🐒🐓🐔🐕🐖🐗🐘🐙🐚🐛🐜🐝🐞🐟🐠🐡🐢🐣🐤🐥🐦🐧🐨🐩🐪🐫🐬🐭🐮🐯🐰🐱🐲🐳🐴🐵🐶🐷🐸🐹🐺🐻🐼🐽🐾🐿';
+              charset += '👀👁👂👃👄👅👆👇👈👉👊👋👌👍👎👏👐👑👒👓👔👕👖👗👘👙👚👛👜👝👞👟👠👡👢👣👤👥👦👧👨👩👪👫👬👭👮👯👰👱👲👳👴👵👶👷👸👹👺👻👼👽👾👿💀';
+              charset += '💁💂💃💄💅💆💇💈💉💊💋💌💍💎💏💐💑💒💓💔💕💖💗💘💙💚💛💜💝💞💟💠💡💢💣💤💥💦💧💨💩💪💫💬💭💮💯💰💱💲💳💴💵💶💷💸💹💺💻💼💽💾💿📀📁📂📃📄📅📆📇📈📉📊📋📌📍📎📏';
+              charset += '📐📑📒📓📔📕📖📗📘📙📚📛📜📝📞📟📠📡📢📣📤📥📦📧📨📩📪📫📬📭📮📯📰📱📲📳📴📵📶📷📸📹📺📻📼📽📿🔀🔁🔂🔃🔄🔅🔆🔇🔈🔉🔊🔋🔌🔍🔎🔏🔐🔑🔒🔓🔔🔕🔖🔗🔘🔙🔚🔛🔜🔝🔞🔟🔠🔡🔢🔣🔤';
+              charset += '🔥🔦🔧🔨🔩🔪🔫🔬🔭🔮🔯🔰🔱🔲🔳🔴🔵🔶🔷🔸🔹🔺🔻🔼🔽🕌🕍🕎🕐🕑🕒🕓🕔🕕🕖🕗🕘🕙🕚🕛🕜🕝🕞🕟🕠🕡🕢🕣🕤🕥🕦🕧';
+            }
 
             if (constraints.excluded) {
                 const excluded = constraints.excluded.split('');
@@ -608,11 +610,30 @@
             });
         }
 
-        function updateWorkflowStep(step) {
-            ['step1', 'step2', 'step3'].forEach(id => {
-                document.getElementById(id).classList.remove('active');
+        function highlightCommonConstraints(mergedConstraints) {
+            // Add highlighting to checkboxes that are active in merged constraints
+            const checkboxes = ['charUppercase', 'charLowercase', 'charNumbers', 'charSpecial', 'charSimilar', 'charWhitespace', 'charDiacritics', 'charEmoji'];
+            const constraintKeys = ['uppercase', 'lowercase', 'numbers', 'special', 'similar', 'whitespace', 'diacritics', 'emoji'];
+            
+            checkboxes.forEach((id, index) => {
+                const checkbox = document.getElementById(id);
+                const label = checkbox.parentElement;
+                const key = constraintKeys[index];
+                
+                if (mergedConstraints[key]) {
+                    // Highlight as common
+                    label.style.backgroundColor = '#c8e6c9';
+                    label.style.padding = '5px';
+                    label.style.borderRadius = '4px';
+                    label.style.fontWeight = 'bold';
+                } else {
+                    // Reset highlighting
+                    label.style.backgroundColor = '';
+                    label.style.padding = '';
+                    label.style.borderRadius = '';
+                    label.style.fontWeight = '';
+                }
             });
-            document.getElementById('step' + step).classList.add('active');
         }
 
         // ========================================
@@ -636,7 +657,8 @@
                 curve: curveName,
                 publicKey: keypair.publicKey,
                 privateKey: keypair.privateKey,
-                publicKeyRaw: publicKeyRaw
+                publicKeyRaw: publicKeyRaw,
+                timestamp: Date.now()
             };
 
             state.keypairs.push(keypairData);
@@ -648,26 +670,33 @@
             return keypairData;
         }
 
-        function saveKeypairsToSession() {
-            // We can't directly store CryptoKey objects, so we'll store the IDs and curves
-            // and regenerate when needed. For a full implementation, you'd need to export/import keys.
-            const sessionData = state.keypairs.map(kp => ({
-                id: kp.id,
-                curve: kp.curve,
-                publicKeyRaw: arrayBufferToBase64(kp.publicKeyRaw)
-            }));
+        async function saveKeypairsToSession() {
+            // Export keys as JWK for storage
+            const sessionData = [];
+            for (const kp of state.keypairs) {
+                const publicKeyJWK = await crypto.subtle.exportKey('jwk', kp.publicKey);
+                const privateKeyJWK = await crypto.subtle.exportKey('jwk', kp.privateKey);
+                sessionData.push({
+                    id: kp.id,
+                    curve: kp.curve,
+                    publicKeyRaw: arrayBufferToBase64(kp.publicKeyRaw),
+                    publicKeyJWK: publicKeyJWK,
+                    privateKeyJWK: privateKeyJWK,
+                    timestamp: kp.timestamp
+                });
+            }
             sessionStorage.setItem('dhkex_keypairs', JSON.stringify(sessionData));
             sessionStorage.setItem('dhkex_active', state.activeKeypairId);
         }
 
-        async function deriveSharedSecret(privateKey, publicKey) {
+        async function deriveSharedSecret(privateKey, publicKey, bits = 256) {
             const sharedSecret = await crypto.subtle.deriveBits(
                 {
                     name: 'ECDH',
                     public: publicKey
                 },
                 privateKey,
-                256  // Derive 256 bits
+                bits
             );
 
             return new Uint8Array(sharedSecret);
@@ -707,44 +736,34 @@
             return hexString.substring(0, hexChars).toUpperCase();
         }
 
-        function derivePassword(sharedSecret, constraints) {
-            const charset = buildCharacterSet(constraints);
+        function derivePassword(sharedSecret, charset, targetLength) {
             if (charset.length === 0) {
                 throw new Error('No character set selected');
             }
 
             // Use the shared secret to generate a password
             // We'll use the bytes of the shared secret to index into the charset
-            const targetLength = Math.min(constraints.maxLength, Math.floor((constraints.minLength + constraints.maxLength) / 2));
             let password = '';
+            let byteOffset = 0;
 
-            for (let i = 0; i < targetLength && i < sharedSecret.length; i++) {
+            for (let i = 0; i < targetLength; i++) {
                 // Use each byte to select a character from the charset
                 // For better distribution, we'll use multiple bytes if charset is large
                 let index;
                 if (charset.length <= 256) {
-                    index = sharedSecret[i] % charset.length;
+                    index = sharedSecret[byteOffset] % charset.length;
+                    byteOffset++;
                 } else {
                     // Use two bytes for larger charsets
-                    const byte1 = sharedSecret[i % sharedSecret.length];
-                    const byte2 = sharedSecret[(i + 1) % sharedSecret.length];
+                    const byte1 = sharedSecret[byteOffset];
+                    const byte2 = sharedSecret[byteOffset + 1];
                     index = ((byte1 << 8) | byte2) % charset.length;
+                    byteOffset += 2;
                 }
                 password += charset[index];
             }
 
-            // If we need more characters, hash the secret and continue
-            if (password.length < targetLength) {
-                // Simple approach: XOR the bytes cyclically
-                for (let i = password.length; i < targetLength; i++) {
-                    const byte1 = sharedSecret[i % sharedSecret.length];
-                    const byte2 = sharedSecret[(i * 7) % sharedSecret.length]; // Different offset
-                    const index = (byte1 ^ byte2) % charset.length;
-                    password += charset[index];
-                }
-            }
-
-            return password.substring(0, targetLength);
+            return password;
         }
 
         // ========================================
@@ -756,8 +775,10 @@
         // 0x03: Curve (1 byte: 0=P-256, 1=P-384, 2=P-521)
         // 0x04: Min Length (1 byte)
         // 0x05: Max Length (1 byte)
-        // 0x06: Charset Flags (1 byte: bits 0-3 for u/l/n/s)
+        // 0x06: Charset Flags (variable length, bit-packed)
+        //       Byte 0: bit 0=uppercase, 1=lowercase, 2=numbers, 3=special, 4=similar, 5=whitespace, 6=diacritics, 7=emoji
         // 0x07: Excluded chars (string)
+        // 0x08: Partner Keypair ID (string) - ID of the keypair that should be used to respond
 
         function encodeTLV(tag, value) {
             let valueBytes;
@@ -827,7 +848,7 @@
             return { tag, value, nextOffset };
         }
 
-        function createToken(keypairId, publicKeyRaw, curve, constraints) {
+        function createToken(keypairId, publicKeyRaw, curve, constraints, partnerKeypairId = null) {
             const parts = [];
 
             // Tag 0x01: Keypair ID
@@ -846,17 +867,30 @@
             // Tag 0x05: Max Length
             parts.push(encodeTLV(0x05, constraints.maxLength));
 
-            // Tag 0x06: Charset Flags
+            // Tag 0x06: Charset Flags (multi-byte support)
             let flags = 0;
             if (constraints.uppercase) flags |= 0x01;
             if (constraints.lowercase) flags |= 0x02;
             if (constraints.numbers) flags |= 0x04;
             if (constraints.special) flags |= 0x08;
-            parts.push(encodeTLV(0x06, flags));
+            if (constraints.similar) flags |= 0x10;
+            if (constraints.whitespace) flags |= 0x20;
+            if (constraints.diacritics) flags |= 0x40;
+            if (constraints.emoji) flags |= 0x80;
+            
+            // Only add if flags is non-zero
+            if (flags !== 0) {
+                parts.push(encodeTLV(0x06, flags));
+            }
 
             // Tag 0x07: Excluded chars (only if non-empty)
             if (constraints.excluded) {
                 parts.push(encodeTLV(0x07, constraints.excluded));
+            }
+
+            // Tag 0x08: Partner Keypair ID (only if provided)
+            if (partnerKeypairId) {
+                parts.push(encodeTLV(0x08, partnerKeypairId));
             }
 
             // Concatenate all parts
@@ -879,6 +913,7 @@
                     keypairId: null,
                     publicKeyRaw: null,
                     curve: null,
+                    partnerKeypairId: null,
                     constraints: {
                         minLength: 16,
                         maxLength: 32,
@@ -886,6 +921,10 @@
                         lowercase: true,
                         numbers: true,
                         special: true,
+                        similar: false,
+                        whitespace: false,
+                        diacritics: false,
+                        emoji: false,
                         excluded: ''
                     }
                 };
@@ -921,9 +960,16 @@
                             result.constraints.lowercase = !!(flags & 0x02);
                             result.constraints.numbers = !!(flags & 0x04);
                             result.constraints.special = !!(flags & 0x08);
+                            result.constraints.similar = !!(flags & 0x10);
+                            result.constraints.whitespace = !!(flags & 0x20);
+                            result.constraints.diacritics = !!(flags & 0x40);
+                            result.constraints.emoji = !!(flags & 0x80);
                             break;
                         case 0x07: // Excluded chars
                             result.constraints.excluded = decoder.decode(tlv.value);
+                            break;
+                        case 0x08: // Partner Keypair ID
+                            result.partnerKeypairId = decoder.decode(tlv.value);
                             break;
                     }
 
@@ -938,27 +984,82 @@
         }
 
         // ========================================
+        // Intelligent Key Management
+        // ========================================
+        async function ensureKeypairForCurve(curveName) {
+            // Find the latest keypair for this curve
+            const matchingKeys = state.keypairs.filter(kp => kp.curve === curveName);
+            
+            if (matchingKeys.length > 0) {
+                // Sort by timestamp, newest first
+                matchingKeys.sort((a, b) => b.timestamp - a.timestamp);
+                const latestKey = matchingKeys[0];
+                state.activeKeypairId = latestKey.id;
+                updateKeypairList();
+                updateShareSection();
+                return latestKey;
+            } else {
+                // No matching keypair, generate one
+                console.log('Auto-generating keypair for curve: ' + curveName);
+                const newKeypair = await generateKeypair(curveName);
+                updateKeypairList();
+                updateShareSection();
+                return newKeypair;
+            }
+        }
+
+        // ========================================
+        // Intelligent Key Management
+        // ========================================
+        async function ensureKeypairForCurve(curveName) {
+            // Find the latest keypair for this curve
+            const matchingKeys = state.keypairs.filter(kp => kp.curve === curveName);
+            
+            if (matchingKeys.length > 0) {
+                // Sort by timestamp, newest first
+                matchingKeys.sort((a, b) => b.timestamp - a.timestamp);
+                const latestKey = matchingKeys[0];
+                state.activeKeypairId = latestKey.id;
+                updateKeypairList();
+                updateShareSection();
+                return latestKey;
+            } else {
+                // No matching keypair, generate one
+                console.log('Auto-generating keypair for curve: ' + curveName);
+                const newKeypair = await generateKeypair(curveName);
+                updateKeypairList();
+                updateShareSection();
+                return newKeypair;
+            }
+        }
+
+        // ========================================
         // UI Update Functions
         // ========================================
         function updateKeypairList() {
             const container = document.getElementById('keypairListContainer');
             const list = document.getElementById('keypairList');
+            const noKeysMsg = document.getElementById('noKeypairsMessage');
 
             if (state.keypairs.length === 0) {
                 container.classList.add('hidden');
+                noKeysMsg.classList.remove('hidden');
                 return;
             }
 
             container.classList.remove('hidden');
+            noKeysMsg.classList.add('hidden');
             list.innerHTML = '';
 
             state.keypairs.forEach(kp => {
                 const item = document.createElement('div');
                 item.className = 'keypair-item' + (kp.id === state.activeKeypairId ? ' active' : '');
+                const timestamp = new Date(kp.timestamp).toLocaleString();
                 item.innerHTML = `
                     <div class="keypair-info">
                         <span class="keypair-id">ID: ${kp.id}</span>
                         <span class="keypair-curve">Curve: ${kp.curve}</span>
+                        <span class="keypair-curve">Created: ${timestamp}</span>
                     </div>
                     <button class="copy-button" onclick="setActiveKeypair('${kp.id}')">
                         ${kp.id === state.activeKeypairId ? 'Active' : 'Select'}
@@ -980,7 +1081,8 @@
                 activeKeypair.id,
                 activeKeypair.publicKeyRaw,
                 activeKeypair.curve,
-                constraints
+                constraints,
+                state.myKeypairIdForPartner
             );
 
             document.getElementById('myToken').textContent = token;
@@ -989,7 +1091,6 @@
             document.getElementById('shareLink').value = link;
 
             document.getElementById('shareSection').classList.remove('hidden');
-            updateWorkflowStep(2);
         }
 
         async function processPartnerToken(tokenString) {
@@ -1016,6 +1117,29 @@
             state.partnerKeypairId = parsed.keypairId;
             state.partnerCurve = parsed.curve;
             
+            // If partner specified which keypair we should use, check if we have it
+            if (parsed.partnerKeypairId) {
+                const targetKeypair = state.keypairs.find(kp => kp.id === parsed.partnerKeypairId);
+                if (targetKeypair) {
+                    state.activeKeypairId = parsed.partnerKeypairId;
+                    updateKeypairList(); // Update UI to show active keypair
+                } else {
+                    // Show error - we don't have the requested keypair
+                    const partnerPanel = document.getElementById('partnerConstraintsContent');
+                    partnerPanel.innerHTML = `
+                        <div class="alert" style="background: #ffebee; border: 1px solid #ef5350; color: #c62828;">
+                            <strong>⚠️ Error: Missing Keypair</strong><br>
+                            Partner requested keypair ID <strong>${parsed.partnerKeypairId}</strong> but it was not found in your key history.<br>
+                            This token was meant as a response to a specific keypair you previously shared.
+                        </div>
+                    `;
+                    return; // Don't proceed with password generation
+                }
+            }
+            
+            // Store partner's keypair ID so our response token includes it
+            state.myKeypairIdForPartner = parsed.keypairId;
+            
             // Merge constraints (take the most restrictive)
             const currentConstraints = getConstraints();
             state.constraints = {
@@ -1025,30 +1149,39 @@
                 lowercase: parsed.constraints.lowercase && currentConstraints.lowercase,
                 numbers: parsed.constraints.numbers && currentConstraints.numbers,
                 special: parsed.constraints.special && currentConstraints.special,
+                similar: parsed.constraints.similar && currentConstraints.similar,
+                whitespace: parsed.constraints.whitespace && currentConstraints.whitespace,
+                diacritics: parsed.constraints.diacritics && currentConstraints.diacritics,
+                emoji: parsed.constraints.emoji && currentConstraints.emoji,
                 excluded: (parsed.constraints.excluded + currentConstraints.excluded).split('').filter((v, i, a) => a.indexOf(v) === i).join('')
             };
 
-            // Show partner info
-            const infoContainer = document.getElementById('partnerInfoContainer');
-            const infoDiv = document.getElementById('partnerInfo');
-            
-            infoDiv.innerHTML = `
-                <div style="padding: 10px; background: white; border-radius: 6px; margin-top: 10px;">
-                    <p><strong>Partner Keypair ID:</strong> ${parsed.keypairId}</p>
-                    <p><strong>Curve:</strong> ${parsed.curve}</p>
-                    <p><strong>Merged Constraints:</strong></p>
-                    <ul style="margin-left: 20px;">
-                        <li>Length: ${state.constraints.minLength}-${state.constraints.maxLength} chars</li>
-                        <li>Uppercase: ${state.constraints.uppercase ? 'Yes' : 'No'}</li>
-                        <li>Lowercase: ${state.constraints.lowercase ? 'Yes' : 'No'}</li>
-                        <li>Numbers: ${state.constraints.numbers ? 'Yes' : 'No'}</li>
-                        <li>Special: ${state.constraints.special ? 'Yes' : 'No'}</li>
-                        ${state.constraints.excluded ? `<li>Excluded: ${state.constraints.excluded}</li>` : ''}
-                    </ul>
+            // Show partner constraints in the side panel
+            const partnerPanel = document.getElementById('partnerConstraintsContent');
+            partnerPanel.innerHTML = `
+                <div style="padding: 10px; background: white; border-radius: 6px;">
+                    <p style="margin-bottom: 10px;"><strong>🆔 Keypair ID:</strong> ${parsed.keypairId}</p>
+                    <p style="margin-bottom: 10px;"><strong>📐 Curve:</strong> ${parsed.curve}</p>
+                    <p style="margin-bottom: 10px;"><strong>📏 Length:</strong> ${parsed.constraints.minLength}-${parsed.constraints.maxLength} chars</p>
+                    <div style="margin-top: 10px;">
+                        <div style="margin-bottom: 5px;">🔤 Uppercase: ${parsed.constraints.uppercase ? '✓' : '✗'}</div>
+                        <div style="margin-bottom: 5px;">🔡 Lowercase: ${parsed.constraints.lowercase ? '✓' : '✗'}</div>
+                        <div style="margin-bottom: 5px;">🔢 Numbers: ${parsed.constraints.numbers ? '✓' : '✗'}</div>
+                        <div style="margin-bottom: 5px;">🔣 Special: ${parsed.constraints.special ? '✓' : '✗'}</div>
+                        <div style="margin-bottom: 5px;">👁️ Similar: ${parsed.constraints.similar ? '✓' : '✗'}</div>
+                        <div style="margin-bottom: 5px;">␣ Whitespace: ${parsed.constraints.whitespace ? '✓' : '✗'}</div>
+                        <div style="margin-bottom: 5px;">é Diacritics: ${parsed.constraints.diacritics ? '✓' : '✗'}</div>
+                        <div style="margin-bottom: 5px;">😀 Emoji: ${parsed.constraints.emoji ? '✓' : '✗'}</div>
+                        ${parsed.constraints.excluded ? `<div>🚫 Excluded: ${parsed.constraints.excluded}</div>` : ''}
+                    </div>
                 </div>
             `;
             
-            infoContainer.classList.remove('hidden');
+            // Highlight common constraints
+            highlightCommonConstraints(state.constraints);
+
+            // Update our share section to include partner's keypair ID in our token
+            updateShareSection();
 
             // If we have an active keypair, derive the password
             if (state.activeKeypairId) {
@@ -1068,11 +1201,17 @@
                 return;
             }
 
-            // Derive shared secret
-            const sharedSecret = await deriveSharedSecret(activeKeypair.privateKey, state.partnerPublicKey);
+            // Build character set and calculate bytes needed
+            const charset = buildCharacterSet(state.constraints);
+            const targetLength = Math.min(state.constraints.maxLength, Math.floor((state.constraints.minLength + state.constraints.maxLength) / 2));
+            const bytesPerChar = charset.length <= 256 ? 1 : 2;
+            const bitsNeeded = targetLength * bytesPerChar * 8;
+
+            // Derive shared secret with exactly the number of bits we need
+            const sharedSecret = await deriveSharedSecret(activeKeypair.privateKey, state.partnerPublicKey, bitsNeeded);
 
             // Generate password
-            const password = derivePassword(sharedSecret, state.constraints);
+            const password = derivePassword(sharedSecret, charset, targetLength);
 
             // Generate verification token
             const verificationToken = generateVerificationToken(activeKeypair.publicKeyRaw, state.partnerPublicKeyRaw, 24);
@@ -1081,8 +1220,6 @@
             document.getElementById('sharedPassword').textContent = password;
             document.getElementById('verificationToken').textContent = verificationToken;
             document.getElementById('resultsSection').classList.remove('hidden');
-            
-            updateWorkflowStep(3);
         }
 
         // ========================================
@@ -1108,13 +1245,18 @@
                 await generateKeypair(curve);
                 updateKeypairList();
                 updateShareSection();
-                updateWorkflowStep(1);
             } catch (e) {
                 alert('Failed to generate keypair: ' + e.message);
             } finally {
                 button.disabled = false;
-                button.textContent = 'Generate My Keypair';
+                button.textContent = 'Generate New Keypair';
             }
+        });
+
+        // Auto-select or generate keypair when curve changes
+        document.getElementById('ecCurve').addEventListener('change', async function() {
+            const curve = this.value;
+            await ensureKeypairForCurve(curve);
         });
 
         document.getElementById('copyToken').addEventListener('click', function() {
@@ -1128,13 +1270,38 @@
         });
 
         document.getElementById('loadPartnerToken').addEventListener('click', async function() {
+            await loadPartnerTokenFromTextarea();
+        });
+
+        // Auto-import partner tokens when pasted
+        let partnerTokenTimeout;
+        document.getElementById('partnerToken').addEventListener('input', function() {
+            clearTimeout(partnerTokenTimeout);
+            partnerTokenTimeout = setTimeout(async () => {
+                const tokenString = this.value.trim();
+                if (tokenString && tokenString.length > 20) { // Basic validation
+                    try {
+                        // Try to parse to see if it's valid
+                        const parsed = parseToken(tokenString);
+                        if (parsed && parsed.publicKeyRaw) {
+                            console.log('Auto-importing partner token...');
+                            await loadPartnerTokenFromTextarea();
+                        }
+                    } catch (e) {
+                        // Invalid token, don't auto-import
+                    }
+                }
+            }, 500); // Wait 500ms after user stops typing
+        });
+
+        async function loadPartnerTokenFromTextarea() {
             const tokenString = document.getElementById('partnerToken').value.trim();
             if (!tokenString) {
                 alert('Please paste a token first');
                 return;
             }
 
-            const button = this;
+            const button = document.getElementById('loadPartnerToken');
             button.disabled = true;
             button.textContent = 'Loading...';
 
@@ -1146,7 +1313,7 @@
                 button.disabled = false;
                 button.textContent = "Load Partner's Token";
             }
-        });
+        }
 
         document.getElementById('copyPassword').addEventListener('click', function() {
             const password = document.getElementById('sharedPassword').textContent;
@@ -1159,7 +1326,7 @@
         });
 
         // Update share section when constraints change
-        ['minLength', 'maxLength', 'charUppercase', 'charLowercase', 'charNumbers', 'charSpecial', 'excludedChars'].forEach(id => {
+        ['minLength', 'maxLength', 'charUppercase', 'charLowercase', 'charNumbers', 'charSpecial', 'charSimilar', 'charWhitespace', 'charDiacritics', 'charEmoji', 'excludedChars'].forEach(id => {
             const element = document.getElementById(id);
             element.addEventListener('change', function() {
                 if (state.activeKeypairId) {
@@ -1169,36 +1336,82 @@
         });
 
         // ========================================
+        // Session Storage Restoration
+        // ========================================
+        async function restoreKeypairsFromSession() {
+            try {
+                const savedKeypairs = sessionStorage.getItem('dhkex_keypairs');
+                const savedActive = sessionStorage.getItem('dhkex_active');
+                
+                if (savedKeypairs) {
+                    const sessionData = JSON.parse(savedKeypairs);
+                    
+                    for (const data of sessionData) {
+                        // Import keys from JWK
+                        const publicKey = await crypto.subtle.importKey(
+                            'jwk',
+                            data.publicKeyJWK,
+                            { name: 'ECDH', namedCurve: data.curve },
+                            true,
+                            []
+                        );
+                        
+                        const privateKey = await crypto.subtle.importKey(
+                            'jwk',
+                            data.privateKeyJWK,
+                            { name: 'ECDH', namedCurve: data.curve },
+                            true,
+                            ['deriveBits']
+                        );
+                        
+                        const keypairData = {
+                            id: data.id,
+                            curve: data.curve,
+                            publicKey: publicKey,
+                            privateKey: privateKey,
+                            publicKeyRaw: base64ToArrayBuffer(data.publicKeyRaw),
+                            timestamp: data.timestamp
+                        };
+                        
+                        state.keypairs.push(keypairData);
+                    }
+                    
+                    if (savedActive) {
+                        state.activeKeypairId = savedActive;
+                    }
+                    
+                    updateKeypairList();
+                    if (state.activeKeypairId) {
+                        updateShareSection();
+                    }
+                    
+                    console.log('Restored ' + state.keypairs.length + ' keypair(s) from session');
+                }
+            } catch (e) {
+                console.error('Failed to restore session:', e);
+            }
+        }
+
+        // ========================================
         // Initialization
         // ========================================
-        window.addEventListener('DOMContentLoaded', function() {
+        window.addEventListener('DOMContentLoaded', async function() {
+            // Restore keypairs from session storage
+            await restoreKeypairsFromSession();
+
             // Check for token in URL
             const urlParams = new URLSearchParams(window.location.search);
             const tokenParam = urlParams.get('token');
             
             if (tokenParam) {
                 document.getElementById('partnerToken').value = tokenParam;
-                // Auto-load if present
-                setTimeout(() => {
-                    document.getElementById('loadPartnerToken').click();
-                }, 500);
+                // Trigger auto-import
+                document.getElementById('partnerToken').dispatchEvent(new Event('input'));
             }
 
-            // Try to restore keypairs from sessionStorage
-            try {
-                const savedKeypairs = sessionStorage.getItem('dhkex_keypairs');
-                const savedActive = sessionStorage.getItem('dhkex_active');
-                
-                if (savedKeypairs) {
-                    // Note: In a full implementation, you'd need to store and restore the actual keys
-                    // For now, we'll just show that they exist but require regeneration
-                    console.log('Previous session detected, but keys need to be regenerated');
-                }
-            } catch (e) {
-                console.error('Failed to restore session:', e);
-            }
-
-            updateWorkflowStep(1);
+            // Ensure we have a keypair for the default curve
+            const defaultCurve = document.getElementById('ecCurve').value;
+            await ensureKeypairForCurve(defaultCurve);
         });
     </script>
 </body>
