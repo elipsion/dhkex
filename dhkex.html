@@ -299,6 +299,180 @@
             flex: 1;
         }
 
+        .help-button {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: #667eea;
+            color: white;
+            border: none;
+            font-size: 1.5em;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+            transition: all 0.3s ease;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .help-button:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            max-width: 700px;
+            width: 100%;
+            max-height: 90vh;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px 30px;
+            border-radius: 12px 12px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+            font-size: 1.5em;
+        }
+
+        .modal-close {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            font-size: 1.5em;
+            cursor: pointer;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+
+        .modal-close:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .modal-body {
+            padding: 30px;
+            overflow-y: auto;
+            flex: 1;
+            min-height: 0;
+        }
+
+        .modal-body h3 {
+            color: #667eea;
+            margin-top: 25px;
+            margin-bottom: 12px;
+            font-size: 1.2em;
+        }
+
+        .modal-body h3:first-child {
+            margin-top: 0;
+        }
+
+        .modal-body p {
+            line-height: 1.6;
+            color: #555;
+            margin-bottom: 15px;
+        }
+
+        .modal-body ol, .modal-body ul {
+            margin-left: 20px;
+            margin-bottom: 15px;
+            color: #555;
+        }
+
+        .modal-body li {
+            margin-bottom: 8px;
+            line-height: 1.5;
+        }
+
+        .modal-body strong {
+            color: #333;
+        }
+
+        .welcome-banner {
+            background: linear-gradient(135deg, #667eea15, #764ba215);
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            padding: 15px 20px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .welcome-banner-icon {
+            font-size: 2em;
+        }
+
+        .welcome-banner-text {
+            flex: 1;
+        }
+
+        .welcome-banner-text p {
+            margin: 0;
+            color: #333;
+        }
+
+        .welcome-banner-close {
+            background: none;
+            border: none;
+            color: #667eea;
+            cursor: pointer;
+            font-size: 1.5em;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+
+        .welcome-banner-close:hover {
+            background: rgba(102, 126, 234, 0.1);
+        }
+
         @media (max-width: 768px) {
             .range-inputs {
                 grid-template-columns: 1fr;
@@ -307,13 +481,91 @@
             .section > div[style*="grid-template-columns"] {
                 grid-template-columns: 1fr !important;
             }
+
+            .help-button {
+                top: 10px;
+                right: 10px;
+                width: 45px;
+                height: 45px;
+                font-size: 1.3em;
+            }
+
+            .modal-body {
+                padding: 20px;
+            }
         }
     </style>
 </head>
 <body>
+    <!-- Help Button -->
+    <button class="help-button" onclick="openHelpModal()" title="Help">🛟</button>
+
+    <!-- Help Modal -->
+    <div id="helpModal" class="modal-overlay" onclick="closeHelpModalOnOverlay(event)">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>🛟 Help & Information</h2>
+                <button class="modal-close" onclick="closeHelpModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <h3>📋 Workflow</h3>
+                <ol>
+                    <li><strong><span title="User A">👨🏽</span></strong> opens this page and configures password constraints (length, character types, excluded characters)</li>
+                    <li><strong><span title="User A">👨🏽</span></strong> generates an EC keypair and shares their token with <strong><span title="User B">👩🏻</span></strong> (via any channel: email, chat, etc.)</li>
+                    <li><strong><span title="User B">👩🏻</span></strong> opens this page, pastes <strong><span title="User A">👨🏽</span></strong>'s token, which automatically imports the constraints</li>
+                    <li><strong><span title="User B">👩🏻</span></strong> generates their own keypair and shares their token back to <strong><span title="User A">👨🏽</span></strong></li>
+                    <li><strong><span title="Both users">👨🏽👩🏻</span></strong> now have matching shared passwords and verification tokens</li>
+                    <li><strong>Verify out-of-band</strong>: <span title="Both users">👨🏽👩🏻</span> compare the 6-character verification token (phone call, video chat, etc.)</li>
+                    <li><strong>Use the password</strong>: Once verified, both users can use the shared password with confidence</li>
+                </ol>
+
+                <h3>🔒 Security Principles</h3>
+                <p>This tool uses <strong>Elliptic Curve Diffie-Hellman (ECDH)</strong> key exchange:</p>
+                <ul>
+                    <li><strong>Public Key Cryptography</strong>: Each user generates a keypair (private + public key). Only public keys are exchanged</li>
+                    <li><strong>Shared Secret Derivation</strong>: Using ECDH, both parties independently compute the same shared secret without ever transmitting it</li>
+                    <li><strong>Password Generation</strong>: The shared secret is deterministically converted to a password using the agreed constraints</li>
+                    <li><strong>Verification Token</strong>: A 24-bit token (XOR of public keys) provides out-of-band verification to prevent MITM attacks</li>
+                    <li><strong>Web Crypto API</strong>: All cryptography uses browser-native, audited implementations (P-256, P-384, or P-521 curves)</li>
+                </ul>
+
+                <h3>🏠 Privacy & Local Operation</h3>
+                <p><strong>Your data never leaves your device:</strong></p>
+                <ul>
+                    <li>✅ <strong>100% Client-Side</strong>: All cryptographic operations happen in your browser using JavaScript</li>
+                    <li>✅ <strong>No Server Communication</strong>: This page makes zero network requests after loading</li>
+                    <li>✅ <strong>No Tracking or Analytics</strong>: No cookies, no tracking pixels, no telemetry of any kind</li>
+                    <li>✅ <strong>Session Storage Only</strong>: Keypairs are stored in your browser's session storage (cleared when tab closes)</li>
+                    <li>✅ <strong>Open Source</strong>: Single HTML file - view source to audit the complete code</li>
+                </ul>
+                <p><em>You control token distribution. This tool only provides the cryptographic mechanism to generate matching passwords.</em></p>
+
+                <h3>💡 Tips</h3>
+                <ul>
+                    <li>Always verify the verification token out-of-band (phone, video) before using the password</li>
+                    <li>Tokens can be shared via any medium (email, chat, SMS) - they contain only public information</li>
+                    <li>Use reasonable password lengths: 12-20 characters is typically secure and usable</li>
+                    <li>The tool auto-selects or generates keypairs as needed for convenience</li>
+                    <li>Multiple keypairs can be maintained in the same session for different exchanges</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
     <div class="container">
         <h1>🔐 DH Key Exchange</h1>
         <p class="subtitle">Secure Password Generator for IT Professionals</p>
+
+        <!-- Welcome Banner (shown when partner token detected in URL) -->
+        <div id="welcomeWrapper" class="hidden">
+            <div id="welcomeBanner" class="welcome-banner">
+                <div class="welcome-banner-icon">👋</div>
+                <div class="welcome-banner-text">
+                    <p><strong>It looks like someone sent you here!</strong> A partner token was detected. It has been pre-filled into the "Partner's Token" field below. Remember to send "Your Token" token to this partner, after modifying the password parameters. <a href="#" onclick="openHelpModal(); return false;">Need help?</a></p>
+                </div>
+                <button class="welcome-banner-close" onclick="closeWelcomeBanner()">&times;</button>
+            </div>
+        </div>
 
         <!-- Section 0: Results (at top) -->
         <div id="resultsSection" class="hidden">
@@ -1399,20 +1651,51 @@
             // Restore keypairs from session storage
             await restoreKeypairsFromSession();
 
-            // Check for token in URL
+            // Check for token in URL and show welcome banner if appropriate
             const urlParams = new URLSearchParams(window.location.search);
-            const tokenParam = urlParams.get('token');
+            const tokenParam = urlParams.get('token') || urlParams.get('t');
             
             if (tokenParam) {
-                document.getElementById('partnerToken').value = tokenParam;
-                // Trigger auto-import
-                document.getElementById('partnerToken').dispatchEvent(new Event('input'));
+                // Show welcome banner if not previously dismissed
+                if (!sessionStorage.getItem('welcomeBannerDismissed')) {
+                    document.getElementById('welcomeWrapper').classList.remove('hidden');
+                }
+                
+                // Auto-fill the partner token field
+                const partnerTokenField = document.getElementById('partnerToken');
+                if (partnerTokenField && !partnerTokenField.value) {
+                    partnerTokenField.value = tokenParam;
+                    // Trigger auto-import
+                    partnerTokenField.dispatchEvent(new Event('input'));
+                }
             }
 
             // Ensure we have a keypair for the default curve
             const defaultCurve = document.getElementById('ecCurve').value;
             await ensureKeypairForCurve(defaultCurve);
         });
+
+        // ========================================
+        // Help Modal Functions
+        // ========================================
+        function openHelpModal() {
+            document.getElementById('helpModal').classList.add('active');
+        }
+
+        function closeHelpModal() {
+            document.getElementById('helpModal').classList.remove('active');
+        }
+
+        function closeHelpModalOnOverlay(event) {
+            if (event.target === event.currentTarget) {
+                closeHelpModal();
+            }
+        }
+
+        function closeWelcomeBanner() {
+            document.getElementById('welcomeWrapper').classList.add('hidden');
+            sessionStorage.setItem('welcomeBannerDismissed', 'true');
+        }
     </script>
 </body>
 </html>
