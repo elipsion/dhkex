@@ -1,0 +1,1205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DH Key Exchange - Secure Password Generator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 30px;
+        }
+
+        h1 {
+            color: #667eea;
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 2em;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 0.9em;
+        }
+
+        .workflow {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 30px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .workflow-step {
+            flex: 1;
+            text-align: center;
+            padding: 10px;
+            position: relative;
+        }
+
+        .workflow-step:not(:last-child)::after {
+            content: '→';
+            position: absolute;
+            right: -15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #667eea;
+            font-size: 1.5em;
+        }
+
+        .workflow-step.active {
+            background: #667eea;
+            color: white;
+            border-radius: 6px;
+        }
+
+        .workflow-step .step-number {
+            font-weight: bold;
+            font-size: 1.2em;
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .workflow-step .step-label {
+            font-size: 0.85em;
+        }
+
+        .section {
+            margin-bottom: 25px;
+            padding: 20px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            background: #fafafa;
+        }
+
+        .section h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section-content {
+            display: grid;
+            gap: 15px;
+        }
+
+        .form-group {
+            display: grid;
+            gap: 8px;
+        }
+
+        label {
+            font-weight: 600;
+            color: #555;
+            font-size: 0.9em;
+        }
+
+        input[type="number"],
+        input[type="text"],
+        select,
+        textarea {
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+
+        input[type="number"]:focus,
+        input[type="text"]:focus,
+        select:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .checkbox-group {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .range-inputs {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        button {
+            padding: 12px 24px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        button:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .keypair-list {
+            display: grid;
+            gap: 10px;
+        }
+
+        .keypair-item {
+            padding: 12px;
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .keypair-item.active {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+
+        .keypair-info {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .keypair-id {
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .keypair-curve {
+            font-size: 0.85em;
+            color: #666;
+        }
+
+        .token-display {
+            padding: 15px;
+            background: white;
+            border: 2px solid #667eea;
+            border-radius: 6px;
+            word-break: break-all;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85em;
+            max-height: 150px;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        .copy-button {
+            padding: 6px 12px;
+            font-size: 0.85em;
+            background: #28a745;
+        }
+
+        .copy-button:hover {
+            background: #218838;
+        }
+
+        .result-box {
+            padding: 20px;
+            background: #e8f5e9;
+            border: 2px solid #4caf50;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+
+        .result-box h3 {
+            color: #2e7d32;
+            margin-bottom: 15px;
+        }
+
+        .result-item {
+            margin-bottom: 15px;
+        }
+
+        .result-item label {
+            display: block;
+            margin-bottom: 5px;
+            color: #2e7d32;
+        }
+
+        .result-value {
+            padding: 12px;
+            background: white;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 1.1em;
+            font-weight: bold;
+            word-break: break-all;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .verification-token {
+            font-size: 1.5em;
+            color: #667eea;
+            text-align: center;
+        }
+
+        .alert {
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+        }
+
+        .alert-info {
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+
+        .alert-warning {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        textarea {
+            min-height: 100px;
+            font-family: 'Courier New', monospace;
+            resize: vertical;
+        }
+
+        .link-display {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .link-display input {
+            flex: 1;
+        }
+
+        @media (max-width: 768px) {
+            .workflow {
+                flex-direction: column;
+            }
+
+            .workflow-step:not(:last-child)::after {
+                content: '↓';
+                right: 50%;
+                top: auto;
+                bottom: -15px;
+            }
+
+            .range-inputs {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 DH Key Exchange</h1>
+        <p class="subtitle">Secure Password Generator for IT Professionals</p>
+
+        <div class="workflow">
+            <div class="workflow-step" id="step1">
+                <span class="step-number">1</span>
+                <span class="step-label">Configure & Generate</span>
+            </div>
+            <div class="workflow-step" id="step2">
+                <span class="step-number">2</span>
+                <span class="step-label">Exchange Tokens</span>
+            </div>
+            <div class="workflow-step" id="step3">
+                <span class="step-number">3</span>
+                <span class="step-label">Derive Password</span>
+            </div>
+        </div>
+
+        <!-- Section 1: Password Constraints -->
+        <div class="section">
+            <h2>⚙️ Password Constraints</h2>
+            <div class="section-content">
+                <div class="form-group">
+                    <label>Password Length Range</label>
+                    <div class="range-inputs">
+                        <div>
+                            <input type="number" id="minLength" min="4" max="128" value="16" placeholder="Min">
+                        </div>
+                        <div>
+                            <input type="number" id="maxLength" min="4" max="128" value="32" placeholder="Max">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Character Sets</label>
+                    <div class="checkbox-group">
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="charUppercase" checked>
+                            <label for="charUppercase">Uppercase (A-Z)</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="charLowercase" checked>
+                            <label for="charLowercase">Lowercase (a-z)</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="charNumbers" checked>
+                            <label for="charNumbers">Numbers (0-9)</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="charSpecial" checked>
+                            <label for="charSpecial">Special (!@#$...)</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Excluded Characters (optional)</label>
+                    <input type="text" id="excludedChars" placeholder="e.g., O0Il1 (confusing characters)">
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 2: Key Generation -->
+        <div class="section">
+            <h2>🔑 Key Generation</h2>
+            <div class="section-content">
+                <div class="form-group">
+                    <label>Elliptic Curve</label>
+                    <select id="ecCurve">
+                        <option value="P-256" selected>P-256 (Default)</option>
+                        <option value="P-384">P-384</option>
+                        <option value="P-521">P-521</option>
+                    </select>
+                </div>
+
+                <div class="button-group">
+                    <button id="generateKeypair">Generate My Keypair</button>
+                </div>
+
+                <div id="keypairListContainer" class="hidden">
+                    <label>My Keypairs</label>
+                    <div id="keypairList" class="keypair-list"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 3: Share Parameters -->
+        <div class="section" id="shareSection" class="hidden">
+            <h2>📤 Share Your Parameters</h2>
+            <div class="section-content">
+                <div class="alert alert-info">
+                    Send this token to the other party. They will use it to generate their keypair and send you their token back.
+                </div>
+
+                <div class="form-group">
+                    <label>Parameter Token</label>
+                    <div class="token-display" id="myToken"></div>
+                    <div class="button-group" style="margin-top: 10px;">
+                        <button class="copy-button" id="copyToken">Copy Token</button>
+                        <button class="copy-button" id="copyLink">Copy Link</button>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Direct Link (includes token in URL)</label>
+                    <div class="link-display">
+                        <input type="text" id="shareLink" readonly>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 4: Load Partner's Parameters -->
+        <div class="section">
+            <h2>📥 Load Partner's Parameters</h2>
+            <div class="section-content">
+                <div class="form-group">
+                    <label>Partner's Parameter Token</label>
+                    <textarea id="partnerToken" placeholder="Paste the token you received from your partner here..."></textarea>
+                </div>
+
+                <div class="button-group">
+                    <button id="loadPartnerToken">Load Partner's Token</button>
+                </div>
+
+                <div id="partnerInfoContainer" class="hidden">
+                    <div class="alert alert-success">
+                        ✓ Partner's parameters loaded successfully!
+                    </div>
+                    <div id="partnerInfo"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 5: Results -->
+        <div id="resultsSection" class="hidden">
+            <div class="result-box">
+                <h3>✨ Shared Password Generated</h3>
+                
+                <div class="result-item">
+                    <label>Shared Password</label>
+                    <div class="result-value">
+                        <span id="sharedPassword"></span>
+                        <button class="copy-button" id="copyPassword">Copy</button>
+                    </div>
+                </div>
+
+                <div class="result-item">
+                    <label>Verification Token (compare with partner)</label>
+                    <div class="result-value verification-token">
+                        <span id="verificationToken"></span>
+                        <button class="copy-button" id="copyVerification">Copy</button>
+                    </div>
+                </div>
+
+                <div class="alert alert-warning">
+                    ⚠️ Compare the verification token with your partner to ensure you both derived the same password. The tokens should match exactly.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ========================================
+        // State Management
+        // ========================================
+        const state = {
+            keypairs: [],
+            activeKeypairId: null,
+            partnerPublicKey: null,
+            partnerPublicKeyRaw: null,
+            partnerKeypairId: null,
+            partnerCurve: null,
+            constraints: null
+        };
+
+        // ========================================
+        // Utility Functions
+        // ========================================
+        function generateId(length = 8) {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            let id = '';
+            const array = new Uint8Array(length);
+            crypto.getRandomValues(array);
+            for (let i = 0; i < length; i++) {
+                id += chars[array[i] % chars.length];
+            }
+            return id;
+        }
+
+        function arrayBufferToBase64(buffer) {
+            const bytes = new Uint8Array(buffer);
+            let binary = '';
+            for (let i = 0; i < bytes.length; i++) {
+                binary += String.fromCharCode(bytes[i]);
+            }
+            return btoa(binary);
+        }
+
+        function base64ToArrayBuffer(base64) {
+            const binary = atob(base64);
+            const bytes = new Uint8Array(binary.length);
+            for (let i = 0; i < binary.length; i++) {
+                bytes[i] = binary.charCodeAt(i);
+            }
+            return bytes.buffer;
+        }
+
+        function getConstraints() {
+            return {
+                minLength: parseInt(document.getElementById('minLength').value),
+                maxLength: parseInt(document.getElementById('maxLength').value),
+                uppercase: document.getElementById('charUppercase').checked,
+                lowercase: document.getElementById('charLowercase').checked,
+                numbers: document.getElementById('charNumbers').checked,
+                special: document.getElementById('charSpecial').checked,
+                excluded: document.getElementById('excludedChars').value
+            };
+        }
+
+        function buildCharacterSet(constraints) {
+            let charset = '';
+            if (constraints.uppercase) charset += 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+            if (constraints.lowercase) charset += 'abcdefghijklmnopqrstuvwxyz';
+            if (constraints.numbers) charset += '0123456789';
+            if (constraints.special) charset += '!@#$%^&*()_+-=[]{}|;:,.<>?';
+
+            if (constraints.excluded) {
+                const excluded = constraints.excluded.split('');
+                charset = charset.split('').filter(c => !excluded.includes(c)).join('');
+            }
+
+            return charset;
+        }
+
+        function copyToClipboard(text, buttonId) {
+            navigator.clipboard.writeText(text).then(() => {
+                const button = document.getElementById(buttonId);
+                const originalText = button.textContent;
+                button.textContent = '✓ Copied!';
+                setTimeout(() => {
+                    button.textContent = originalText;
+                }, 2000);
+            });
+        }
+
+        function updateWorkflowStep(step) {
+            ['step1', 'step2', 'step3'].forEach(id => {
+                document.getElementById(id).classList.remove('active');
+            });
+            document.getElementById('step' + step).classList.add('active');
+        }
+
+        // ========================================
+        // Cryptographic Functions
+        // ========================================
+        async function generateKeypair(curveName) {
+            const keypair = await crypto.subtle.generateKey(
+                {
+                    name: 'ECDH',
+                    namedCurve: curveName
+                },
+                true,
+                ['deriveBits']
+            );
+
+            const publicKeyRaw = await crypto.subtle.exportKey('raw', keypair.publicKey);
+            const keypairId = generateId(6);
+
+            const keypairData = {
+                id: keypairId,
+                curve: curveName,
+                publicKey: keypair.publicKey,
+                privateKey: keypair.privateKey,
+                publicKeyRaw: publicKeyRaw
+            };
+
+            state.keypairs.push(keypairData);
+            state.activeKeypairId = keypairId;
+
+            // Store in sessionStorage
+            saveKeypairsToSession();
+
+            return keypairData;
+        }
+
+        function saveKeypairsToSession() {
+            // We can't directly store CryptoKey objects, so we'll store the IDs and curves
+            // and regenerate when needed. For a full implementation, you'd need to export/import keys.
+            const sessionData = state.keypairs.map(kp => ({
+                id: kp.id,
+                curve: kp.curve,
+                publicKeyRaw: arrayBufferToBase64(kp.publicKeyRaw)
+            }));
+            sessionStorage.setItem('dhkex_keypairs', JSON.stringify(sessionData));
+            sessionStorage.setItem('dhkex_active', state.activeKeypairId);
+        }
+
+        async function deriveSharedSecret(privateKey, publicKey) {
+            const sharedSecret = await crypto.subtle.deriveBits(
+                {
+                    name: 'ECDH',
+                    public: publicKey
+                },
+                privateKey,
+                256  // Derive 256 bits
+            );
+
+            return new Uint8Array(sharedSecret);
+        }
+
+        function generateVerificationToken(myPublicKeyRaw, partnerPublicKeyRaw, bits = 24) {
+            const myBytes = new Uint8Array(myPublicKeyRaw);
+            const partnerBytes = new Uint8Array(partnerPublicKeyRaw);
+
+            // XOR the public keys
+            const maxLen = Math.max(myBytes.length, partnerBytes.length);
+            const xorResult = new Uint8Array(maxLen);
+            
+            for (let i = 0; i < maxLen; i++) {
+                const myByte = i < myBytes.length ? myBytes[i] : 0;
+                const partnerByte = i < partnerBytes.length ? partnerBytes[i] : 0;
+                xorResult[i] = myByte ^ partnerByte;
+            }
+
+            // Divide into blocks and XOR them together
+            const blockSize = Math.ceil(bits / 8);
+            let finalBlock = new Uint8Array(blockSize);
+            
+            for (let i = 0; i < xorResult.length; i++) {
+                finalBlock[i % blockSize] ^= xorResult[i];
+            }
+
+            // Convert to hex string (limited to requested bits)
+            let hexString = '';
+            const numBytes = Math.ceil(bits / 8);
+            for (let i = 0; i < numBytes; i++) {
+                hexString += finalBlock[i].toString(16).padStart(2, '0');
+            }
+
+            // Trim to exact bit count
+            const hexChars = Math.ceil(bits / 4);
+            return hexString.substring(0, hexChars).toUpperCase();
+        }
+
+        function derivePassword(sharedSecret, constraints) {
+            const charset = buildCharacterSet(constraints);
+            if (charset.length === 0) {
+                throw new Error('No character set selected');
+            }
+
+            // Use the shared secret to generate a password
+            // We'll use the bytes of the shared secret to index into the charset
+            const targetLength = Math.min(constraints.maxLength, Math.floor((constraints.minLength + constraints.maxLength) / 2));
+            let password = '';
+
+            for (let i = 0; i < targetLength && i < sharedSecret.length; i++) {
+                // Use each byte to select a character from the charset
+                // For better distribution, we'll use multiple bytes if charset is large
+                let index;
+                if (charset.length <= 256) {
+                    index = sharedSecret[i] % charset.length;
+                } else {
+                    // Use two bytes for larger charsets
+                    const byte1 = sharedSecret[i % sharedSecret.length];
+                    const byte2 = sharedSecret[(i + 1) % sharedSecret.length];
+                    index = ((byte1 << 8) | byte2) % charset.length;
+                }
+                password += charset[index];
+            }
+
+            // If we need more characters, hash the secret and continue
+            if (password.length < targetLength) {
+                // Simple approach: XOR the bytes cyclically
+                for (let i = password.length; i < targetLength; i++) {
+                    const byte1 = sharedSecret[i % sharedSecret.length];
+                    const byte2 = sharedSecret[(i * 7) % sharedSecret.length]; // Different offset
+                    const index = (byte1 ^ byte2) % charset.length;
+                    password += charset[index];
+                }
+            }
+
+            return password.substring(0, targetLength);
+        }
+
+        // ========================================
+        // Token Management (TLV Encoding)
+        // ========================================
+        // TLV Tags:
+        // 0x01: Keypair ID (string)
+        // 0x02: Public Key (binary)
+        // 0x03: Curve (1 byte: 0=P-256, 1=P-384, 2=P-521)
+        // 0x04: Min Length (1 byte)
+        // 0x05: Max Length (1 byte)
+        // 0x06: Charset Flags (1 byte: bits 0-3 for u/l/n/s)
+        // 0x07: Excluded chars (string)
+
+        function encodeTLV(tag, value) {
+            let valueBytes;
+            
+            if (typeof value === 'string') {
+                const encoder = new TextEncoder();
+                valueBytes = encoder.encode(value);
+            } else if (typeof value === 'number') {
+                valueBytes = new Uint8Array([value]);
+            } else if (value instanceof ArrayBuffer || value instanceof Uint8Array) {
+                valueBytes = new Uint8Array(value);
+            } else {
+                throw new Error('Unsupported value type for TLV encoding');
+            }
+
+            const length = valueBytes.length;
+            let result;
+
+            if (length < 128) {
+                // Short form: 1 byte length
+                result = new Uint8Array(2 + length);
+                result[0] = tag;
+                result[1] = length;
+                result.set(valueBytes, 2);
+            } else {
+                // Long form: 2 bytes length (supports up to 65535)
+                result = new Uint8Array(4 + length);
+                result[0] = tag;
+                result[1] = 0x80 | 0x02; // Length is encoded in next 2 bytes
+                result[2] = (length >> 8) & 0xFF;
+                result[3] = length & 0xFF;
+                result.set(valueBytes, 4);
+            }
+
+            return result;
+        }
+
+        function decodeTLV(buffer, offset) {
+            const view = new Uint8Array(buffer);
+            
+            if (offset >= view.length) {
+                return null;
+            }
+
+            const tag = view[offset];
+            let length;
+            let valueOffset;
+
+            if (view[offset + 1] & 0x80) {
+                // Long form
+                const lengthBytes = view[offset + 1] & 0x7F;
+                if (lengthBytes === 2) {
+                    length = (view[offset + 2] << 8) | view[offset + 3];
+                    valueOffset = offset + 4;
+                } else {
+                    throw new Error('Unsupported length encoding');
+                }
+            } else {
+                // Short form
+                length = view[offset + 1];
+                valueOffset = offset + 2;
+            }
+
+            const value = view.slice(valueOffset, valueOffset + length);
+            const nextOffset = valueOffset + length;
+
+            return { tag, value, nextOffset };
+        }
+
+        function createToken(keypairId, publicKeyRaw, curve, constraints) {
+            const parts = [];
+
+            // Tag 0x01: Keypair ID
+            parts.push(encodeTLV(0x01, keypairId));
+
+            // Tag 0x02: Public Key
+            parts.push(encodeTLV(0x02, publicKeyRaw));
+
+            // Tag 0x03: Curve (encode as number)
+            const curveMap = { 'P-256': 0, 'P-384': 1, 'P-521': 2 };
+            parts.push(encodeTLV(0x03, curveMap[curve] || 0));
+
+            // Tag 0x04: Min Length
+            parts.push(encodeTLV(0x04, constraints.minLength));
+
+            // Tag 0x05: Max Length
+            parts.push(encodeTLV(0x05, constraints.maxLength));
+
+            // Tag 0x06: Charset Flags
+            let flags = 0;
+            if (constraints.uppercase) flags |= 0x01;
+            if (constraints.lowercase) flags |= 0x02;
+            if (constraints.numbers) flags |= 0x04;
+            if (constraints.special) flags |= 0x08;
+            parts.push(encodeTLV(0x06, flags));
+
+            // Tag 0x07: Excluded chars (only if non-empty)
+            if (constraints.excluded) {
+                parts.push(encodeTLV(0x07, constraints.excluded));
+            }
+
+            // Concatenate all parts
+            const totalLength = parts.reduce((sum, part) => sum + part.length, 0);
+            const result = new Uint8Array(totalLength);
+            let offset = 0;
+            for (const part of parts) {
+                result.set(part, offset);
+                offset += part.length;
+            }
+
+            // Base64 encode the binary TLV data
+            return arrayBufferToBase64(result.buffer);
+        }
+
+        function parseToken(tokenString) {
+            try {
+                const buffer = base64ToArrayBuffer(tokenString);
+                const result = {
+                    keypairId: null,
+                    publicKeyRaw: null,
+                    curve: null,
+                    constraints: {
+                        minLength: 16,
+                        maxLength: 32,
+                        uppercase: true,
+                        lowercase: true,
+                        numbers: true,
+                        special: true,
+                        excluded: ''
+                    }
+                };
+
+                const curveMap = ['P-256', 'P-384', 'P-521'];
+                let offset = 0;
+
+                while (offset < buffer.byteLength) {
+                    const tlv = decodeTLV(buffer, offset);
+                    if (!tlv) break;
+
+                    const decoder = new TextDecoder();
+
+                    switch (tlv.tag) {
+                        case 0x01: // Keypair ID
+                            result.keypairId = decoder.decode(tlv.value);
+                            break;
+                        case 0x02: // Public Key
+                            result.publicKeyRaw = tlv.value.buffer;
+                            break;
+                        case 0x03: // Curve
+                            result.curve = curveMap[tlv.value[0]] || 'P-256';
+                            break;
+                        case 0x04: // Min Length
+                            result.constraints.minLength = tlv.value[0];
+                            break;
+                        case 0x05: // Max Length
+                            result.constraints.maxLength = tlv.value[0];
+                            break;
+                        case 0x06: // Charset Flags
+                            const flags = tlv.value[0];
+                            result.constraints.uppercase = !!(flags & 0x01);
+                            result.constraints.lowercase = !!(flags & 0x02);
+                            result.constraints.numbers = !!(flags & 0x04);
+                            result.constraints.special = !!(flags & 0x08);
+                            break;
+                        case 0x07: // Excluded chars
+                            result.constraints.excluded = decoder.decode(tlv.value);
+                            break;
+                    }
+
+                    offset = tlv.nextOffset;
+                }
+
+                return result;
+            } catch (e) {
+                console.error('Failed to parse token:', e);
+                return null;
+            }
+        }
+
+        // ========================================
+        // UI Update Functions
+        // ========================================
+        function updateKeypairList() {
+            const container = document.getElementById('keypairListContainer');
+            const list = document.getElementById('keypairList');
+
+            if (state.keypairs.length === 0) {
+                container.classList.add('hidden');
+                return;
+            }
+
+            container.classList.remove('hidden');
+            list.innerHTML = '';
+
+            state.keypairs.forEach(kp => {
+                const item = document.createElement('div');
+                item.className = 'keypair-item' + (kp.id === state.activeKeypairId ? ' active' : '');
+                item.innerHTML = `
+                    <div class="keypair-info">
+                        <span class="keypair-id">ID: ${kp.id}</span>
+                        <span class="keypair-curve">Curve: ${kp.curve}</span>
+                    </div>
+                    <button class="copy-button" onclick="setActiveKeypair('${kp.id}')">
+                        ${kp.id === state.activeKeypairId ? 'Active' : 'Select'}
+                    </button>
+                `;
+                list.appendChild(item);
+            });
+        }
+
+        function updateShareSection() {
+            const activeKeypair = state.keypairs.find(kp => kp.id === state.activeKeypairId);
+            if (!activeKeypair) {
+                document.getElementById('shareSection').classList.add('hidden');
+                return;
+            }
+
+            const constraints = getConstraints();
+            const token = createToken(
+                activeKeypair.id,
+                activeKeypair.publicKeyRaw,
+                activeKeypair.curve,
+                constraints
+            );
+
+            document.getElementById('myToken').textContent = token;
+            
+            const link = window.location.href.split('?')[0] + '?token=' + encodeURIComponent(token);
+            document.getElementById('shareLink').value = link;
+
+            document.getElementById('shareSection').classList.remove('hidden');
+            updateWorkflowStep(2);
+        }
+
+        async function processPartnerToken(tokenString) {
+            const parsed = parseToken(tokenString);
+            if (!parsed) {
+                alert('Invalid token format');
+                return;
+            }
+
+            // Import the partner's public key
+            const partnerPublicKey = await crypto.subtle.importKey(
+                'raw',
+                parsed.publicKeyRaw,
+                {
+                    name: 'ECDH',
+                    namedCurve: parsed.curve
+                },
+                false,
+                []
+            );
+
+            state.partnerPublicKey = partnerPublicKey;
+            state.partnerPublicKeyRaw = parsed.publicKeyRaw;
+            state.partnerKeypairId = parsed.keypairId;
+            state.partnerCurve = parsed.curve;
+            
+            // Merge constraints (take the most restrictive)
+            const currentConstraints = getConstraints();
+            state.constraints = {
+                minLength: Math.max(parsed.constraints.minLength, currentConstraints.minLength),
+                maxLength: Math.min(parsed.constraints.maxLength, currentConstraints.maxLength),
+                uppercase: parsed.constraints.uppercase && currentConstraints.uppercase,
+                lowercase: parsed.constraints.lowercase && currentConstraints.lowercase,
+                numbers: parsed.constraints.numbers && currentConstraints.numbers,
+                special: parsed.constraints.special && currentConstraints.special,
+                excluded: (parsed.constraints.excluded + currentConstraints.excluded).split('').filter((v, i, a) => a.indexOf(v) === i).join('')
+            };
+
+            // Show partner info
+            const infoContainer = document.getElementById('partnerInfoContainer');
+            const infoDiv = document.getElementById('partnerInfo');
+            
+            infoDiv.innerHTML = `
+                <div style="padding: 10px; background: white; border-radius: 6px; margin-top: 10px;">
+                    <p><strong>Partner Keypair ID:</strong> ${parsed.keypairId}</p>
+                    <p><strong>Curve:</strong> ${parsed.curve}</p>
+                    <p><strong>Merged Constraints:</strong></p>
+                    <ul style="margin-left: 20px;">
+                        <li>Length: ${state.constraints.minLength}-${state.constraints.maxLength} chars</li>
+                        <li>Uppercase: ${state.constraints.uppercase ? 'Yes' : 'No'}</li>
+                        <li>Lowercase: ${state.constraints.lowercase ? 'Yes' : 'No'}</li>
+                        <li>Numbers: ${state.constraints.numbers ? 'Yes' : 'No'}</li>
+                        <li>Special: ${state.constraints.special ? 'Yes' : 'No'}</li>
+                        ${state.constraints.excluded ? `<li>Excluded: ${state.constraints.excluded}</li>` : ''}
+                    </ul>
+                </div>
+            `;
+            
+            infoContainer.classList.remove('hidden');
+
+            // If we have an active keypair, derive the password
+            if (state.activeKeypairId) {
+                await deriveAndDisplayPassword();
+            }
+        }
+
+        async function deriveAndDisplayPassword() {
+            const activeKeypair = state.keypairs.find(kp => kp.id === state.activeKeypairId);
+            if (!activeKeypair || !state.partnerPublicKey) {
+                return;
+            }
+
+            // Check curve compatibility
+            if (activeKeypair.curve !== state.partnerCurve) {
+                alert('Curve mismatch! You are using ' + activeKeypair.curve + ' but partner is using ' + state.partnerCurve);
+                return;
+            }
+
+            // Derive shared secret
+            const sharedSecret = await deriveSharedSecret(activeKeypair.privateKey, state.partnerPublicKey);
+
+            // Generate password
+            const password = derivePassword(sharedSecret, state.constraints);
+
+            // Generate verification token
+            const verificationToken = generateVerificationToken(activeKeypair.publicKeyRaw, state.partnerPublicKeyRaw, 24);
+
+            // Display results
+            document.getElementById('sharedPassword').textContent = password;
+            document.getElementById('verificationToken').textContent = verificationToken;
+            document.getElementById('resultsSection').classList.remove('hidden');
+            
+            updateWorkflowStep(3);
+        }
+
+        // ========================================
+        // Global Functions (for onclick handlers)
+        // ========================================
+        window.setActiveKeypair = function(keypairId) {
+            state.activeKeypairId = keypairId;
+            saveKeypairsToSession();
+            updateKeypairList();
+            updateShareSection();
+        };
+
+        // ========================================
+        // Event Handlers
+        // ========================================
+        document.getElementById('generateKeypair').addEventListener('click', async function() {
+            const curve = document.getElementById('ecCurve').value;
+            const button = this;
+            button.disabled = true;
+            button.textContent = 'Generating...';
+
+            try {
+                await generateKeypair(curve);
+                updateKeypairList();
+                updateShareSection();
+                updateWorkflowStep(1);
+            } catch (e) {
+                alert('Failed to generate keypair: ' + e.message);
+            } finally {
+                button.disabled = false;
+                button.textContent = 'Generate My Keypair';
+            }
+        });
+
+        document.getElementById('copyToken').addEventListener('click', function() {
+            const token = document.getElementById('myToken').textContent;
+            copyToClipboard(token, 'copyToken');
+        });
+
+        document.getElementById('copyLink').addEventListener('click', function() {
+            const link = document.getElementById('shareLink').value;
+            copyToClipboard(link, 'copyLink');
+        });
+
+        document.getElementById('loadPartnerToken').addEventListener('click', async function() {
+            const tokenString = document.getElementById('partnerToken').value.trim();
+            if (!tokenString) {
+                alert('Please paste a token first');
+                return;
+            }
+
+            const button = this;
+            button.disabled = true;
+            button.textContent = 'Loading...';
+
+            try {
+                await processPartnerToken(tokenString);
+            } catch (e) {
+                alert('Failed to process token: ' + e.message);
+            } finally {
+                button.disabled = false;
+                button.textContent = "Load Partner's Token";
+            }
+        });
+
+        document.getElementById('copyPassword').addEventListener('click', function() {
+            const password = document.getElementById('sharedPassword').textContent;
+            copyToClipboard(password, 'copyPassword');
+        });
+
+        document.getElementById('copyVerification').addEventListener('click', function() {
+            const token = document.getElementById('verificationToken').textContent;
+            copyToClipboard(token, 'copyVerification');
+        });
+
+        // Update share section when constraints change
+        ['minLength', 'maxLength', 'charUppercase', 'charLowercase', 'charNumbers', 'charSpecial', 'excludedChars'].forEach(id => {
+            const element = document.getElementById(id);
+            element.addEventListener('change', function() {
+                if (state.activeKeypairId) {
+                    updateShareSection();
+                }
+            });
+        });
+
+        // ========================================
+        // Initialization
+        // ========================================
+        window.addEventListener('DOMContentLoaded', function() {
+            // Check for token in URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const tokenParam = urlParams.get('token');
+            
+            if (tokenParam) {
+                document.getElementById('partnerToken').value = tokenParam;
+                // Auto-load if present
+                setTimeout(() => {
+                    document.getElementById('loadPartnerToken').click();
+                }, 500);
+            }
+
+            // Try to restore keypairs from sessionStorage
+            try {
+                const savedKeypairs = sessionStorage.getItem('dhkex_keypairs');
+                const savedActive = sessionStorage.getItem('dhkex_active');
+                
+                if (savedKeypairs) {
+                    // Note: In a full implementation, you'd need to store and restore the actual keys
+                    // For now, we'll just show that they exist but require regeneration
+                    console.log('Previous session detected, but keys need to be regenerated');
+                }
+            } catch (e) {
+                console.error('Failed to restore session:', e);
+            }
+
+            updateWorkflowStep(1);
+        });
+    </script>
+</body>
+</html>
