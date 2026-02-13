@@ -766,6 +766,8 @@
             constraints: null
         };
 
+        const MAX_TOKEN_LENGTH = 8192;
+
         // ========================================
         // Utility Functions
         // ========================================
@@ -943,26 +945,91 @@
             sessionStorage.setItem('dhkex_active', state.activeKeypairId);
         }
 
-        async function deriveSharedSecret(privateKey, publicKey, bits = 256) {
+        async function deriveSharedSecret(privateKey, publicKey, curveName, infoBytes, saltBytes, curveBits, bits = 256) {
             const sharedSecret = await crypto.subtle.deriveBits(
                 {
                     name: 'ECDH',
                     public: publicKey
                 },
                 privateKey,
-                256
+                curveBits
             );
             const result = await crypto.subtle.deriveBits(
                 {
                     name: 'HKDF',
                     hash: 'SHA-256',
-                    salt: new Uint8Array([]),
-                    info: new Uint8Array([])
+                    salt: saltBytes || new Uint8Array([]),
+                    info: infoBytes || new Uint8Array([])
                 },
                 await crypto.subtle.importKey('raw', sharedSecret, { name: 'HKDF' }, false, ['deriveBits']),
                 bits
             );
             return new Uint8Array(result);
+        }
+
+        function getDeterministicConstraints(constraints) {
+            return {
+                minLength: constraints.minLength,
+                maxLength: constraints.maxLength,
+                uppercase: constraints.uppercase,
+                lowercase: constraints.lowercase,
+                numbers: constraints.numbers,
+                special: constraints.special,
+                similar: constraints.similar,
+                whitespace: constraints.whitespace,
+                diacritics: constraints.diacritics,
+                emoji: constraints.emoji,
+                excluded: constraints.excluded
+            };
+        }
+
+        function buildConstraintsInfoBytes(constraints) {
+            const deterministic = getDeterministicConstraints(constraints);
+            const encoder = new TextEncoder();
+            return encoder.encode(JSON.stringify(deterministic));
+        }
+
+        function xorStringsToBytes(a, b) {
+            if (!a || !b) {
+                return new Uint8Array([]);
+            }
+            const encoder = new TextEncoder();
+            const aBytes = encoder.encode(a);
+            const bBytes = encoder.encode(b);
+            const maxLen = Math.max(aBytes.length, bBytes.length);
+            const result = new Uint8Array(maxLen);
+            for (let i = 0; i < maxLen; i++) {
+                const aByte = i < aBytes.length ? aBytes[i] : 0;
+                const bByte = i < bBytes.length ? bBytes[i] : 0;
+                result[i] = aByte ^ bByte;
+            }
+            return result;
+        }
+
+        async function deriveHkdfSaltFromKeyIds(myKeypairId, partnerKeypairId, bits = 256) {
+            if (!myKeypairId || !partnerKeypairId) {
+                return new Uint8Array([]);
+            }
+            const xorBytes = xorStringsToBytes(myKeypairId, partnerKeypairId);
+            const keyMaterial = await crypto.subtle.importKey(
+                'raw',
+                xorBytes,
+                { name: 'PBKDF2' },
+                false,
+                ['deriveBits']
+            );
+            const salt = new TextEncoder().encode('dhkex-keyid-salt');
+            const derived = await crypto.subtle.deriveBits(
+                {
+                    name: 'PBKDF2',
+                    hash: 'SHA-256',
+                    salt,
+                    iterations: 10000
+                },
+                keyMaterial,
+                bits
+            );
+            return new Uint8Array(derived);
         }
 
         function generateVerificationToken(myPublicKeyRaw, partnerPublicKeyRaw, constraints, bits = 24) {
@@ -981,21 +1048,7 @@
 
             // Incorporate constraints into the verification token
             // Serialize constraints to bytes
-            const constraintsString = JSON.stringify({
-                minLength: constraints.minLength,
-                maxLength: constraints.maxLength,
-                uppercase: constraints.uppercase,
-                lowercase: constraints.lowercase,
-                numbers: constraints.numbers,
-                special: constraints.special,
-                similar: constraints.similar,
-                whitespace: constraints.whitespace,
-                diacritics: constraints.diacritics,
-                emoji: constraints.emoji,
-                excluded: constraints.excluded
-            });
-            const encoder = new TextEncoder();
-            const constraintsBytes = encoder.encode(constraintsString);
+            const constraintsBytes = buildConstraintsInfoBytes(constraints);
 
             // XOR constraints into the result
             for (let i = 0; i < constraintsBytes.length; i++) {
@@ -1194,6 +1247,9 @@
 
         function parseToken(tokenString) {
             try {
+                if (!tokenString || tokenString.length > MAX_TOKEN_LENGTH) {
+                    return null;
+                }
                 const buffer = base64ToArrayBuffer(tokenString);
                 const result = {
                     keypairId: null,
@@ -1295,28 +1351,97 @@
         }
 
         // ========================================
-        // Intelligent Key Management
+        // DOM Helper Functions
         // ========================================
-        async function ensureKeypairForCurve(curveName) {
-            // Find the latest keypair for this curve
-            const matchingKeys = state.keypairs.filter(kp => kp.curve === curveName);
-            
-            if (matchingKeys.length > 0) {
-                // Sort by timestamp, newest first
-                matchingKeys.sort((a, b) => b.timestamp - a.timestamp);
-                const latestKey = matchingKeys[0];
-                state.activeKeypairId = latestKey.id;
-                updateKeypairList();
-                updateShareSection();
-                return latestKey;
-            } else {
-                // No matching keypair, generate one
-                console.log('Auto-generating keypair for curve: ' + curveName);
-                const newKeypair = await generateKeypair(curveName);
-                updateKeypairList();
-                updateShareSection();
-                return newKeypair;
+        function createParagraphWithLabel(labelText, valueText) {
+            const p = document.createElement('p');
+            p.style.marginBottom = '10px';
+            const strong = document.createElement('strong');
+            strong.textContent = labelText;
+            p.appendChild(strong);
+            p.appendChild(document.createTextNode(' ' + valueText));
+            return p;
+        }
+
+        function createConstraintGrid(constraints) {
+            const grid = document.createElement('div');
+            grid.style.marginTop = '10px';
+            grid.style.display = 'grid';
+            grid.style.gridTemplateColumns = '1fr 1fr';
+            grid.style.gap = '5px';
+
+            const addRow = (label, value) => {
+                const row = document.createElement('div');
+                row.textContent = label + ': ' + (value ? '✓' : '✗');
+                grid.appendChild(row);
+            };
+
+            addRow('🔤 Uppercase', constraints.uppercase);
+            addRow('🔡 Lowercase', constraints.lowercase);
+            addRow('🔢 Numbers', constraints.numbers);
+            addRow('🔣 Special', constraints.special);
+            addRow('👁️ Similar', constraints.similar);
+            addRow('␣ Whitespace', constraints.whitespace);
+            addRow('é Diacritics', constraints.diacritics);
+            addRow('😀 Emoji', constraints.emoji);
+
+            if (constraints.excluded) {
+                const excludedRow = document.createElement('div');
+                excludedRow.style.gridColumn = '1 / -1';
+                excludedRow.textContent = '🚫 Excluded: ' + constraints.excluded;
+                grid.appendChild(excludedRow);
             }
+
+            return grid;
+        }
+
+        function showPartnerConstraints(parsed) {
+            const partnerPanel = document.getElementById('partnerConstraintsContent');
+            partnerPanel.textContent = '';
+            
+            const wrapper = document.createElement('div');
+            wrapper.style.padding = '10px';
+            wrapper.style.background = 'white';
+            wrapper.style.borderRadius = '6px';
+
+            wrapper.appendChild(createParagraphWithLabel('🆔 Keypair ID:', parsed.keypairId));
+            wrapper.appendChild(createParagraphWithLabel('📐 Curve:', parsed.curve));
+            wrapper.appendChild(createParagraphWithLabel('📏 Length:', parsed.constraints.minLength + '-' + parsed.constraints.maxLength + ' chars'));
+            wrapper.appendChild(createConstraintGrid(parsed.constraints));
+            
+            partnerPanel.appendChild(wrapper);
+        }
+
+        function showMissingKeypairError(partnerKeypairId) {
+            const partnerPanel = document.getElementById('partnerConstraintsContent');
+            partnerPanel.textContent = '';
+
+            const alert = document.createElement('div');
+            alert.className = 'alert';
+            alert.style.background = '#ffebee';
+            alert.style.border = '1px solid #ef5350';
+            alert.style.color = '#c62828';
+
+            const title = document.createElement('strong');
+            title.textContent = '⚠️ Error: Missing Keypair';
+            alert.appendChild(title);
+            alert.appendChild(document.createElement('br'));
+
+            const line1 = document.createElement('span');
+            line1.textContent = 'Partner requested keypair ID ';
+            alert.appendChild(line1);
+
+            const idStrong = document.createElement('strong');
+            idStrong.textContent = partnerKeypairId;
+            alert.appendChild(idStrong);
+            alert.appendChild(document.createTextNode(' but it was not found in your key history.'));
+            alert.appendChild(document.createElement('br'));
+
+            const line2 = document.createElement('span');
+            line2.textContent = 'This token was meant as a response to a specific keypair you previously shared.';
+            alert.appendChild(line2);
+
+            partnerPanel.appendChild(alert);
         }
 
         // ========================================
@@ -1373,7 +1498,8 @@
 
             document.getElementById('myToken').textContent = token;
             
-            const link = window.location.href.split('?')[0] + '?token=' + encodeURIComponent(token);
+            const baseUrl = window.location.href.split('#')[0].split('?')[0];
+            const link = baseUrl + '#token=' + encodeURIComponent(token);
             document.getElementById('shareLink').value = link;
 
             document.getElementById('shareSection').classList.remove('hidden');
@@ -1411,14 +1537,7 @@
                     updateKeypairList(); // Update UI to show active keypair
                 } else {
                     // Show error - we don't have the requested keypair
-                    const partnerPanel = document.getElementById('partnerConstraintsContent');
-                    partnerPanel.innerHTML = `
-                        <div class="alert" style="background: #ffebee; border: 1px solid #ef5350; color: #c62828;">
-                            <strong>⚠️ Error: Missing Keypair</strong><br>
-                            Partner requested keypair ID <strong>${parsed.partnerKeypairId}</strong> but it was not found in your key history.<br>
-                            This token was meant as a response to a specific keypair you previously shared.
-                        </div>
-                    `;
+                    showMissingKeypairError(parsed.partnerKeypairId);
                     return; // Don't proceed with password generation
                 }
             }
@@ -1443,25 +1562,7 @@
             };
 
             // Show partner constraints in the side panel
-            const partnerPanel = document.getElementById('partnerConstraintsContent');
-            partnerPanel.innerHTML = `
-                <div style="padding: 10px; background: white; border-radius: 6px;">
-                    <p style="margin-bottom: 10px;"><strong>🆔 Keypair ID:</strong> ${parsed.keypairId}</p>
-                    <p style="margin-bottom: 10px;"><strong>📐 Curve:</strong> ${parsed.curve}</p>
-                    <p style="margin-bottom: 10px;"><strong>📏 Length:</strong> ${parsed.constraints.minLength}-${parsed.constraints.maxLength} chars</p>
-                    <div style="margin-top: 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 5px;">
-                        <div>🔤 Uppercase: ${parsed.constraints.uppercase ? '✓' : '✗'}</div>
-                        <div>🔡 Lowercase: ${parsed.constraints.lowercase ? '✓' : '✗'}</div>
-                        <div>🔢 Numbers: ${parsed.constraints.numbers ? '✓' : '✗'}</div>
-                        <div>🔣 Special: ${parsed.constraints.special ? '✓' : '✗'}</div>
-                        <div>👁️ Similar: ${parsed.constraints.similar ? '✓' : '✗'}</div>
-                        <div>␣ Whitespace: ${parsed.constraints.whitespace ? '✓' : '✗'}</div>
-                        <div>é Diacritics: ${parsed.constraints.diacritics ? '✓' : '✗'}</div>
-                        <div>😀 Emoji: ${parsed.constraints.emoji ? '✓' : '✗'}</div>
-                        ${parsed.constraints.excluded ? `<div style="grid-column: 1 / -1;">🚫 Excluded: ${parsed.constraints.excluded}</div>` : ''}
-                    </div>
-                </div>
-            `;
+            showPartnerConstraints(parsed);
             
             // Highlight common constraints
             highlightCommonConstraints(state.constraints);
@@ -1494,7 +1595,18 @@
             const bitsNeeded = targetLength * bytesPerChar * 8;
 
             // Derive shared secret with exactly the number of bits we need
-            const sharedSecret = await deriveSharedSecret(activeKeypair.privateKey, state.partnerPublicKey, bitsNeeded);
+            const curveBits = activeKeypair.curve === 'P-384' ? 384 : (activeKeypair.curve === 'P-521' ? 521 : 256);
+            const infoBytes = buildConstraintsInfoBytes(state.constraints);
+            const saltBytes = await deriveHkdfSaltFromKeyIds(activeKeypair.id, state.partnerKeypairId, curveBits);
+            const sharedSecret = await deriveSharedSecret(
+                activeKeypair.privateKey,
+                state.partnerPublicKey,
+                activeKeypair.curve,
+                infoBytes,
+                saltBytes,
+                curveBits,
+                bitsNeeded
+            );
 
             // Generate password
             const password = derivePassword(sharedSecret, charset, targetLength);
@@ -1688,9 +1800,10 @@
             // Restore keypairs from session storage
             await restoreKeypairsFromSession();
 
-            // Check for token in URL and show welcome banner if appropriate
+            // Check for token in URL fragment or query and show welcome banner if appropriate
+            const hashParams = new URLSearchParams(window.location.hash.startsWith('#') ? window.location.hash.slice(1) : '');
             const urlParams = new URLSearchParams(window.location.search);
-            const tokenParam = urlParams.get('token') || urlParams.get('t');
+            const tokenParam = hashParams.get('token') || hashParams.get('t') || urlParams.get('token') || urlParams.get('t');
             
             if (tokenParam) {
                 // Show welcome banner if not previously dismissed
