@@ -162,9 +162,6 @@
             background: white;
             border: 2px solid #e0e0e0;
             border-radius: 6px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
         }
 
         .keypair-item.active {
@@ -172,10 +169,88 @@
             background: #f0f4ff;
         }
 
+        .keypair-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
         .keypair-info {
             display: flex;
             flex-direction: column;
             gap: 4px;
+        }
+
+        .keypair-actions {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .icon-button {
+            padding: 2px 4px;
+            background: transparent;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1.1em;
+            transition: all 0.2s;
+        }
+
+        .icon-button:hover {
+            background: #f0f0f0;
+            border-color: #667eea;
+        }
+
+        .icon-button.saved {
+            color: #4caf50;
+            border-color: #4caf50;
+            border-width: 2px;
+            padding: 1px 3px;
+        }
+
+        .icon-button.locked {
+            color: #ffa726;
+            border-color: #ffa726;
+            border-width: 2px;
+            padding: 1px 3px;
+        }
+
+        .keypair-storage-controls {
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid #e0e0e0;
+            display: none;
+        }
+
+        .keypair-storage-controls.visible {
+            display: block;
+        }
+
+        .storage-input-group {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .storage-input-group input {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+
+        .storage-input-group button {
+            padding: 8px 16px;
+            font-size: 0.9em;
+        }
+
+        .storage-hint {
+            font-size: 0.8em;
+            color: #666;
+            font-style: italic;
         }
 
         .keypair-id {
@@ -493,6 +568,215 @@
             .modal-body {
                 padding: 20px;
             }
+        }
+
+        /* Toast Notifications */
+        .toast-container {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            z-index: 3000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-width: 400px;
+        }
+
+        .toast {
+            background: white;
+            border-radius: 8px;
+            padding: 16px 20px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            animation: slideIn 0.3s ease-out;
+            border-left: 4px solid #667eea;
+        }
+
+        .toast.success {
+            border-left-color: #4caf50;
+        }
+
+        .toast.error {
+            border-left-color: #f44336;
+        }
+
+        .toast.warning {
+            border-left-color: #ffa726;
+        }
+
+        .toast.info {
+            border-left-color: #2196f3;
+        }
+
+        .toast-icon {
+            font-size: 1.5em;
+            flex-shrink: 0;
+        }
+
+        .toast-message {
+            flex: 1;
+            color: #333;
+            line-height: 1.4;
+        }
+
+        .toast-close {
+            background: none;
+            border: none;
+            color: #999;
+            cursor: pointer;
+            font-size: 1.2em;
+            padding: 0;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            flex-shrink: 0;
+            transition: all 0.2s;
+        }
+
+        .toast-close:hover {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideOut {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+        }
+
+        .toast.removing {
+            animation: slideOut 0.3s ease-out forwards;
+        }
+
+        @media (max-width: 768px) {
+            .toast-container {
+                right: 10px;
+                left: 10px;
+                max-width: none;
+            }
+
+            @keyframes slideIn {
+                from {
+                    transform: translateY(-100px);
+                    opacity: 0;
+                }
+                to {
+                    transform: translateY(0);
+                    opacity: 1;
+                }
+            }
+
+            @keyframes slideOut {
+                from {
+                    transform: translateY(0);
+                    opacity: 1;
+                }
+                to {
+                    transform: translateY(-100px);
+                    opacity: 0;
+                }
+            }
+        }
+
+        /* Confirmation Modal */
+        .confirm-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 2500;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .confirm-overlay.active {
+            display: flex;
+        }
+
+        .confirm-dialog {
+            background: white;
+            border-radius: 12px;
+            max-width: 450px;
+            width: 90%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .confirm-header {
+            padding: 20px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .confirm-header h3 {
+            margin: 0;
+            color: #333;
+            font-size: 1.2em;
+        }
+
+        .confirm-body {
+            padding: 20px;
+            color: #555;
+            line-height: 1.6;
+        }
+
+        .confirm-footer {
+            padding: 15px 20px;
+            background: #f5f5f5;
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        .confirm-footer button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.95em;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .confirm-cancel {
+            background: #e0e0e0;
+            color: #555;
+        }
+
+        .confirm-cancel:hover {
+            background: #d0d0d0;
+        }
+
+        .confirm-confirm {
+            background: #f44336;
+            color: white;
+        }
+
+        .confirm-confirm:hover {
+            background: #d32f2f;
         }
     </style>
 </head>
@@ -943,6 +1227,184 @@
             }
             sessionStorage.setItem('dhkex_keypairs', JSON.stringify(sessionData));
             sessionStorage.setItem('dhkex_active', state.activeKeypairId);
+        }
+
+        // ========================================
+        // Persistent Storage (localStorage with optional encryption)
+        // ========================================
+        async function deriveKeyFromPassword(password, salt) {
+            const encoder = new TextEncoder();
+            const passwordKey = await crypto.subtle.importKey(
+                'raw',
+                encoder.encode(password),
+                'PBKDF2',
+                false,
+                ['deriveBits', 'deriveKey']
+            );
+            
+            return await crypto.subtle.deriveKey(
+                {
+                    name: 'PBKDF2',
+                    salt: salt,
+                    iterations: 100000,
+                    hash: 'SHA-256'
+                },
+                passwordKey,
+                { name: 'AES-GCM', length: 256 },
+                false,
+                ['encrypt', 'decrypt']
+            );
+        }
+
+        async function encryptData(data, password) {
+            const encoder = new TextEncoder();
+            const salt = crypto.getRandomValues(new Uint8Array(16));
+            const iv = crypto.getRandomValues(new Uint8Array(12));
+            const key = await deriveKeyFromPassword(password, salt);
+            
+            const encrypted = await crypto.subtle.encrypt(
+                { name: 'AES-GCM', iv: iv },
+                key,
+                encoder.encode(JSON.stringify(data))
+            );
+            
+            return {
+                encrypted: arrayBufferToBase64(encrypted),
+                salt: arrayBufferToBase64(salt),
+                iv: arrayBufferToBase64(iv)
+            };
+        }
+
+        async function decryptData(encryptedData, password) {
+            const decoder = new TextDecoder();
+            const salt = base64ToArrayBuffer(encryptedData.salt);
+            const iv = base64ToArrayBuffer(encryptedData.iv);
+            const key = await deriveKeyFromPassword(password, new Uint8Array(salt));
+            
+            try {
+                const decrypted = await crypto.subtle.decrypt(
+                    { name: 'AES-GCM', iv: new Uint8Array(iv) },
+                    key,
+                    base64ToArrayBuffer(encryptedData.encrypted)
+                );
+                return JSON.parse(decoder.decode(decrypted));
+            } catch (e) {
+                throw new Error('Incorrect password or corrupted data');
+            }
+        }
+
+        window.toggleStorageControls = function(keypairId) {
+            const controls = document.getElementById(`storage-${keypairId}`);
+            controls.classList.toggle('visible');
+        };
+
+        window.saveKeypairToPersistent = async function(keypairId) {
+            const kp = state.keypairs.find(k => k.id === keypairId);
+            if (!kp) return;
+            
+            const password = document.getElementById(`pwd-${keypairId}`).value;
+            
+            try {
+                const publicKeyJWK = await crypto.subtle.exportKey('jwk', kp.publicKey);
+                const privateKeyJWK = await crypto.subtle.exportKey('jwk', kp.privateKey);
+                
+                const keyData = {
+                    id: kp.id,
+                    curve: kp.curve,
+                    publicKeyRaw: arrayBufferToBase64(kp.publicKeyRaw),
+                    publicKeyJWK: publicKeyJWK,
+                    privateKeyJWK: privateKeyJWK,
+                    timestamp: kp.timestamp
+                };
+                
+                let storageData;
+                if (password) {
+                    const encrypted = await encryptData(keyData, password);
+                    storageData = {
+                        encrypted: true,
+                        data: encrypted
+                    };
+                } else {
+                    storageData = {
+                        encrypted: false,
+                        data: keyData
+                    };
+                }
+                
+                const savedKeys = JSON.parse(localStorage.getItem('dhkex_persistent_keys') || '{}');
+                savedKeys[keypairId] = storageData;
+                localStorage.setItem('dhkex_persistent_keys', JSON.stringify(savedKeys));
+                
+                document.getElementById(`pwd-${keypairId}`).value = '';
+                updateKeypairList();
+                showToast('Keypair saved to persistent storage!', 'success');
+            } catch (e) {
+                showToast('Error saving keypair: ' + e.message, 'error');
+            }
+        };
+
+        window.deleteKeypairFromPersistent = function(keypairId) {
+            showConfirm('Remove this keypair from persistent storage?', () => {
+                const savedKeys = JSON.parse(localStorage.getItem('dhkex_persistent_keys') || '{}');
+                delete savedKeys[keypairId];
+                localStorage.setItem('dhkex_persistent_keys', JSON.stringify(savedKeys));
+                updateKeypairList();
+                showToast('Keypair removed from storage', 'info');
+            });
+        };
+
+        async function loadPersistentKeypairs() {
+            try {
+                const savedKeys = JSON.parse(localStorage.getItem('dhkex_persistent_keys') || '{}');
+                
+                for (const [keypairId, storageData] of Object.entries(savedKeys)) {
+                    // Skip if already loaded in session
+                    if (state.keypairs.find(k => k.id === keypairId)) continue;
+                    
+                    let keyData;
+                    
+                    if (storageData.encrypted) {
+                        // Skip encrypted keys - user must manually load them
+                        continue;
+                    } else {
+                        keyData = storageData.data;
+                    }
+                    
+                    // Import the keys
+                    const publicKey = await crypto.subtle.importKey(
+                        'jwk',
+                        keyData.publicKeyJWK,
+                        { name: 'ECDH', namedCurve: keyData.curve },
+                        true,
+                        []
+                    );
+                    
+                    const privateKey = await crypto.subtle.importKey(
+                        'jwk',
+                        keyData.privateKeyJWK,
+                        { name: 'ECDH', namedCurve: keyData.curve },
+                        true,
+                        ['deriveBits']
+                    );
+                    
+                    const publicKeyRaw = base64ToArrayBuffer(keyData.publicKeyRaw);
+                    
+                    state.keypairs.push({
+                        id: keyData.id,
+                        curve: keyData.curve,
+                        publicKey: publicKey,
+                        privateKey: privateKey,
+                        publicKeyRaw: publicKeyRaw,
+                        timestamp: keyData.timestamp
+                    });
+                }
+                
+                if (state.keypairs.length > 0 && !state.activeKeypairId) {
+                    state.activeKeypairId = state.keypairs[state.keypairs.length - 1].id;
+                }
+            } catch (e) {
+                console.error('Error loading persistent keypairs:', e);
+            }
         }
 
         async function deriveSharedSecret(privateKey, publicKey, curveName, infoBytes, saltBytes, curveBits, bits = 256) {
@@ -1466,15 +1928,44 @@
                 const item = document.createElement('div');
                 item.className = 'keypair-item' + (kp.id === state.activeKeypairId ? ' active' : '');
                 const timestamp = new Date(kp.timestamp).toLocaleString();
+                
+                // Check if this key is saved in localStorage
+                const savedKeys = JSON.parse(localStorage.getItem('dhkex_persistent_keys') || '{}');
+                const isSaved = savedKeys.hasOwnProperty(kp.id);
+                const isEncrypted = isSaved && savedKeys[kp.id].encrypted;
+                
                 item.innerHTML = `
-                    <div class="keypair-info">
-                        <span class="keypair-id">ID: ${kp.id}</span>
-                        <span class="keypair-curve">Curve: ${kp.curve}</span>
-                        <span class="keypair-curve">Created: ${timestamp}</span>
+                    <div class="keypair-item-header">
+                        <div class="keypair-info">
+                            <span class="keypair-id">ID: ${kp.id}</span>
+                            <span class="keypair-curve">Curve: ${kp.curve}</span>
+                            <span class="keypair-curve">Created: ${timestamp}</span>
+                        </div>
+                        <div class="keypair-actions">
+                            <button class="icon-button ${isSaved ? 'saved' : ''}" 
+                                    onclick="toggleStorageControls('${kp.id}')" 
+                                    title="${isSaved ? (isEncrypted ? 'Saved with password' : 'Saved') : 'Save to persistent storage'}">
+                                ${isEncrypted ? '🔒' : (isSaved ? '💾' : '💾')}
+                            </button>
+                            <button class="copy-button" onclick="setActiveKeypair('${kp.id}')">
+                                ${kp.id === state.activeKeypairId ? 'Active' : 'Select'}
+                            </button>
+                        </div>
                     </div>
-                    <button class="copy-button" onclick="setActiveKeypair('${kp.id}')">
-                        ${kp.id === state.activeKeypairId ? 'Active' : 'Select'}
-                    </button>
+                    <div id="storage-${kp.id}" class="keypair-storage-controls">
+                        <div class="storage-input-group">
+                            <input type="password" 
+                                   id="pwd-${kp.id}" 
+                                   placeholder="Password (optional)" />
+                            <button onclick="saveKeypairToPersistent('${kp.id}')">
+                                ${isSaved ? 'Update' : 'Save'}
+                            </button>
+                            ${isSaved ? `<button onclick="deleteKeypairFromPersistent('${kp.id}')">Delete</button>` : ''}
+                        </div>
+                        <div class="storage-hint">
+                            ${isSaved ? 'Saved in browser storage' : 'Leave password blank for unencrypted storage'}
+                        </div>
+                    </div>
                 `;
                 list.appendChild(item);
             });
@@ -1508,7 +1999,7 @@
         async function processPartnerToken(tokenString) {
             const parsed = parseToken(tokenString);
             if (!parsed) {
-                alert('Invalid token format');
+                showToast('Invalid token format', 'error');
                 return;
             }
 
@@ -1584,7 +2075,7 @@
 
             // Check curve compatibility
             if (activeKeypair.curve !== state.partnerCurve) {
-                alert('Curve mismatch! You are using ' + activeKeypair.curve + ' but partner is using ' + state.partnerCurve);
+                showToast('Curve mismatch! You are using ' + activeKeypair.curve + ' but partner is using ' + state.partnerCurve, 'error', 6000);
                 return;
             }
 
@@ -1644,7 +2135,7 @@
                 updateKeypairList();
                 updateShareSection();
             } catch (e) {
-                alert('Failed to generate keypair: ' + e.message);
+                showToast('Failed to generate keypair: ' + e.message, 'error');
             } finally {
                 button.disabled = false;
                 button.textContent = 'Generate New Keypair';
@@ -1695,7 +2186,7 @@
         async function loadPartnerTokenFromTextarea() {
             const tokenString = document.getElementById('partnerToken').value.trim();
             if (!tokenString) {
-                alert('Please paste a token first');
+                showToast('Please paste a token first', 'warning');
                 return;
             }
 
@@ -1706,7 +2197,7 @@
             try {
                 await processPartnerToken(tokenString);
             } catch (e) {
-                alert('Failed to process token: ' + e.message);
+                showToast('Failed to process token: ' + e.message, 'error');
             } finally {
                 button.disabled = false;
                 button.textContent = "Load Partner's Token";
@@ -1797,6 +2288,9 @@
         // Initialization
         // ========================================
         window.addEventListener('DOMContentLoaded', async function() {
+            // Load persistent keypairs from localStorage (unencrypted only)
+            await loadPersistentKeypairs();
+            
             // Restore keypairs from session storage
             await restoreKeypairsFromSession();
 
@@ -1846,6 +2340,94 @@
             document.getElementById('welcomeWrapper').classList.add('hidden');
             sessionStorage.setItem('welcomeBannerDismissed', 'true');
         }
+
+        // ========================================
+        // Toast Notification System
+        // ========================================
+        function showToast(message, type = 'info', duration = 4000) {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            
+            const icons = {
+                success: '✓',
+                error: '✕',
+                warning: '⚠',
+                info: 'ℹ'
+            };
+            
+            toast.innerHTML = `
+                <div class="toast-icon">${icons[type] || icons.info}</div>
+                <div class="toast-message">${message}</div>
+                <button class="toast-close" onclick="closeToast(this)">&times;</button>
+            `;
+            
+            container.appendChild(toast);
+            
+            if (duration > 0) {
+                setTimeout(() => {
+                    closeToast(toast.querySelector('.toast-close'));
+                }, duration);
+            }
+        }
+
+        function closeToast(button) {
+            const toast = button.parentElement;
+            toast.classList.add('removing');
+            setTimeout(() => {
+                toast.remove();
+            }, 300);
+        }
+
+        window.showConfirm = function(message, onConfirm, title = 'Confirm Action') {
+            const overlay = document.getElementById('confirmOverlay');
+            const messageEl = document.getElementById('confirmMessage');
+            const titleEl = document.getElementById('confirmTitle');
+            
+            messageEl.textContent = message;
+            titleEl.textContent = title;
+            overlay.classList.add('active');
+            
+            // Store callback for when user confirms
+            window._confirmCallback = onConfirm;
+        };
+
+        window.closeConfirm = function(confirmed) {
+            const overlay = document.getElementById('confirmOverlay');
+            overlay.classList.remove('active');
+            
+            if (confirmed && window._confirmCallback) {
+                window._confirmCallback();
+            }
+            
+            window._confirmCallback = null;
+        };
+
+        // Close confirm on overlay click
+        document.getElementById('confirmOverlay')?.addEventListener('click', function(event) {
+            if (event.target === this) {
+                closeConfirm(false);
+            }
+        });
     </script>
+
+    <!-- Confirmation Modal -->
+    <div id="confirmOverlay" class="confirm-overlay">
+        <div class="confirm-dialog">
+            <div class="confirm-header">
+                <h3 id="confirmTitle">Confirm Action</h3>
+            </div>
+            <div class="confirm-body">
+                <p id="confirmMessage"></p>
+            </div>
+            <div class="confirm-footer">
+                <button class="confirm-cancel" onclick="closeConfirm(false)">Cancel</button>
+                <button class="confirm-confirm" onclick="closeConfirm(true)">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toastContainer" class="toast-container"></div>
 </body>
 </html>
