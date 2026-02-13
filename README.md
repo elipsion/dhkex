@@ -10,7 +10,7 @@ A client-side web application for generating matching passwords between two part
 - **🔑 ECDH Key Exchange**: Uses Web Crypto API with P-256, P-384, or P-521 curves
 - **🎯 Customizable Constraints**: Configure password length, character sets, and exclusions
 - **✓ Verification Tokens**: 24-bit tokens for out-of-band verification to prevent MITM attacks
-- **💾 Session Persistence**: Keypairs stored in browser session storage (auto-cleared on tab close)
+- **💾 Persistent Storage**: Save keypairs to localStorage with optional AES-GCM password encryption
 - **📦 Compact Tokens**: Binary TLV encoding for efficient token exchange
 - **🔄 Smart Key Management**: Automatic keypair selection and generation
 - **🌐 URL Token Support**: Share tokens via URL parameters for convenience
@@ -41,7 +41,7 @@ A client-side web application for generating matching passwords between two part
 ✅ **100% Client-Side**: All cryptographic operations happen in your browser using JavaScript  
 ✅ **No Server Communication**: This page makes zero network requests after loading  
 ✅ **No Tracking or Analytics**: No cookies, no tracking pixels, no telemetry of any kind  
-✅ **Session Storage Only**: Keypairs are stored in your browser's session storage (cleared when tab closes)  
+✅ **Optional Persistent Storage**: Save keypairs to localStorage with optional AES encryption
 ✅ **Open Source**: Single HTML file - view source to audit the complete code  
 
 **You control token distribution.** This tool only provides the cryptographic mechanism to generate matching passwords.
@@ -65,6 +65,7 @@ A client-side web application for generating matching passwords between two part
 5. Paste your partner's token when received
 6. Both parties see matching passwords and verification tokens
 7. Verify the verification token out-of-band before using the password
+8. (Optional) Save keypairs using the 💾 icon with optional password protection
 
 ### URL Parameters
 
@@ -133,7 +134,7 @@ This is a single-file application designed for simplicity and auditability. Cont
 
 - **Always verify tokens out-of-band**: Use phone, video call, or in-person verification
 - **Tokens contain public information**: Safe to transmit via any channel (email, chat, SMS)
-- **Session storage only**: Keypairs are cleared when you close the browser tab
+- **Optional persistent storage**: Save keypairs to localStorage with optional password encryption
 - **Not for high-security environments**: This tool is for convenience, not maximum security
 - **Browser compatibility**: Requires modern browser with Web Crypto API support
 
