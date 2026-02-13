@@ -634,7 +634,7 @@
                                     <label for="charSpecial">Special (!@#$...)</label>
                                 </div>
                                 <div class="checkbox-item">
-                                    <input type="checkbox" id="charSimilar">
+                                    <input type="checkbox" id="charSimilar" checked>
                                     <label for="charSimilar">Similar (O0Il1)</label>
                                 </div>
                                 <div class="checkbox-item">
@@ -654,7 +654,7 @@
 
                         <div class="form-group">
                             <label>Excluded Characters (optional)</label>
-                            <input type="text" id="excludedChars" placeholder="e.g., O0Il1">
+                            <input type="text" id="excludedChars" placeholder="e.g., &quot;#&grave;'&acute;">
                         </div>
                     </div>
                 </div>
@@ -820,7 +820,6 @@
             if (constraints.lowercase) charset += 'abcdefghijklmnopqrstuvwxyz';
             if (constraints.numbers) charset += '0123456789';
             if (constraints.special) charset += '!@#$%^&*()_+-=[]{}|;:,.<>?';
-            if (constraints.similar) charset += 'O0Il1';
             if (constraints.whitespace) charset += ' \t';
             if (constraints.diacritics) charset += 'àáâäèéêëìíîïòóôöùúûüçñãõÀÁÂÄÈÉÊËÌÍÎÏÒÓÔÖÙÚÛÜÇÑÃÕ';
             if (constraints.emoji) {
@@ -840,6 +839,10 @@
               charset += '💁💂💃💄💅💆💇💈💉💊💋💌💍💎💏💐💑💒💓💔💕💖💗💘💙💚💛💜💝💞💟💠💡💢💣💤💥💦💧💨💩💪💫💬💭💮💯💰💱💲💳💴💵💶💷💸💹💺💻💼💽💾💿📀📁📂📃📄📅📆📇📈📉📊📋📌📍📎📏';
               charset += '📐📑📒📓📔📕📖📗📘📙📚📛📜📝📞📟📠📡📢📣📤📥📦📧📨📩📪📫📬📭📮📯📰📱📲📳📴📵📶📷📸📹📺📻📼📽📿🔀🔁🔂🔃🔄🔅🔆🔇🔈🔉🔊🔋🔌🔍🔎🔏🔐🔑🔒🔓🔔🔕🔖🔗🔘🔙🔚🔛🔜🔝🔞🔟🔠🔡🔢🔣🔤';
               charset += '🔥🔦🔧🔨🔩🔪🔫🔬🔭🔮🔯🔰🔱🔲🔳🔴🔵🔶🔷🔸🔹🔺🔻🔼🔽🕌🕍🕎🕐🕑🕒🕓🕔🕕🕖🕗🕘🕙🕚🕛🕜🕝🕞🕟🕠🕡🕢🕣🕤🕥🕦🕧';
+            }
+
+            if (!constraints.similar) {
+                charset = charset.replace(/[O0Il1|]/g, '');
             }
 
             if (constraints.excluded) {
@@ -1204,7 +1207,7 @@
                         lowercase: true,
                         numbers: true,
                         special: true,
-                        similar: false,
+                        similar: true,
                         whitespace: false,
                         diacritics: false,
                         emoji: false,
