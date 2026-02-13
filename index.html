@@ -949,13 +949,17 @@
                 privateKey,
                 256
             );
-            var result = new Uint8Array(sharedSecret);
-            while (result.length * 8 < bits) {
-                // If the derived secret is shorter than needed, we can hash it to expand
-                const hash = await crypto.subtle.digest('SHA-256', result);
-                result = new Uint8Array([...result, ...new Uint8Array(hash)]);
-            }
-            return result;
+            const result = await crypto.subtle.deriveBits(
+                {
+                    name: 'HKDF',
+                    hash: 'SHA-256',
+                    salt: new Uint8Array([]),
+                    info: new Uint8Array([])
+                },
+                await crypto.subtle.importKey('raw', sharedSecret, { name: 'HKDF' }, false, ['deriveBits']),
+                bits
+            );
+            return new Uint8Array(result);
         }
 
         function generateVerificationToken(myPublicKeyRaw, partnerPublicKeyRaw, constraints, bits = 24) {
