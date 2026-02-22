@@ -42,7 +42,7 @@ A client-side web application for generating matching passwords between two part
 ✅ **No Server Communication**: This page makes zero network requests after loading  
 ✅ **No Tracking or Analytics**: No cookies, no tracking pixels, no telemetry of any kind  
 ✅ **Optional Persistent Storage**: Save keypairs to localStorage with optional AES encryption
-✅ **Open Source**: Single HTML file - view source to audit the complete code  
+✅ **Open Source**: Separated into auditable files - view source to audit the complete code  
 
 **You control token distribution.** This tool only provides the cryptographic mechanism to generate matching passwords.
 
@@ -94,6 +94,15 @@ Supports both `?token=` and `?t=` parameters.
 - Emoji (😀🚀🎉...)
 
 ## 🛠️ Technical Details
+
+### File Structure
+
+The codebase is organized into separate files for easier security auditing:
+
+- **`index.html`** - HTML structure only (no inline scripts or styles)
+- **`styles.css`** - All CSS styling
+- **`crypto.js`** - Cryptographic operations (ECDH key exchange, HKDF derivation, AES-GCM encryption, TLV token encoding, key management). This is the file to focus on for security audits.
+- **`app.js`** - Application logic and UI (state management, DOM manipulation, event handlers)
 
 ### Token Format
 
