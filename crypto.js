@@ -8,6 +8,11 @@
 // - Utility functions for encoding/decoding and ID generation
 
 // ========================================
+// Version Constants
+// ========================================
+const CRYPTO_VERSION = 1;
+
+// ========================================
 // Utility Functions
 // ========================================
 function generateId(length = 8) {
@@ -39,6 +44,80 @@ function base64ToArrayBuffer(base64) {
     return bytes.buffer;
 }
 
+// ========================================
+// Variable-Length Integer Encoding (VarInt)
+// ========================================
+// Encodes integers efficiently: 1 byte for 0-127, 2 bytes for 128-16383, etc.
+function encodeVarInt(value) {
+    if (value < 0) {
+        throw new Error('VarInt encoding only supports non-negative integers');
+    }
+    
+    if (value < 128) {
+        // Single byte: 0xxxxxxx
+        return new Uint8Array([value]);
+    } else if (value < 16384) {
+        // Two bytes: 10xxxxxx xxxxxxxx
+        return new Uint8Array([
+            0x80 | (value >> 8),
+            value & 0xFF
+        ]);
+    } else if (value < 2097152) {
+        // Three bytes: 110xxxxx xxxxxxxx xxxxxxxx
+        return new Uint8Array([
+            0xC0 | (value >> 16),
+            (value >> 8) & 0xFF,
+            value & 0xFF
+        ]);
+    } else {
+        // Four bytes: 11111111 xxxxxxxx xxxxxxxx xxxxxxxx xxxxxxxx (max ~4 billion)
+        return new Uint8Array([
+            0xFF,
+            (value >> 24) & 0xFF,
+            (value >> 16) & 0xFF,
+            (value >> 8) & 0xFF,
+            value & 0xFF
+        ]);
+    }
+}
+
+// Decodes variable-length integer from buffer at offset
+// If defaultValue is provided, returns { value: defaultValue, nextOffset: offset } instead of throwing exceptions
+function decodeVarInt(buffer, offset, defaultValue) {
+    const hasDefault = arguments.length >= 3;
+    const view = new Uint8Array(buffer);
+    
+    if (offset >= view.length) {
+        if (hasDefault) {
+            return { value: defaultValue, nextOffset: offset };
+        }
+        throw new Error('VarInt decoding: offset out of bounds');
+    }
+    
+    const firstByte = view[offset];
+    
+    if ((firstByte & 0x80) === 0) {
+        // Single byte: 0xxxxxxx
+        return { value: firstByte, nextOffset: offset + 1 };
+    } else if ((firstByte & 0xC0) === 0x80) {
+        // Two bytes: 10xxxxxx xxxxxxxx
+        const value = ((firstByte & 0x3F) << 8) | view[offset + 1];
+        return { value, nextOffset: offset + 2 };
+    } else if ((firstByte & 0xE0) === 0xC0) {
+        // Three bytes: 110xxxxx xxxxxxxx xxxxxxxx
+        const value = ((firstByte & 0x1F) << 16) | (view[offset + 1] << 8) | view[offset + 2];
+        return { value, nextOffset: offset + 3 };
+    } else if (firstByte === 0xFF) {
+        // Four bytes: 11111111 xxxxxxxx xxxxxxxx xxxxxxxx xxxxxxxx
+        const value = (view[offset + 1] << 24) | (view[offset + 2] << 16) | (view[offset + 3] << 8) | view[offset + 4];
+        return { value, nextOffset: offset + 5 };
+    } else {
+        if (hasDefault) {
+            return { value: defaultValue, nextOffset: offset };
+        }
+        throw new Error('Invalid VarInt encoding');
+    }
+}
 
 // ========================================
 // Cryptographic Functions
@@ -109,6 +188,9 @@ async function saveKeypairsToSession() {
 //       Byte 0: bit 0=uppercase, 1=lowercase, 2=numbers, 3=special, 4=similar, 5=whitespace, 6=diacritics, 7=emoji
 // 0x07: Excluded chars (string)
 // 0x08: Partner Keypair ID (string) - ID of the keypair that should be used to respond
+// 0x09: Crypto Version (varInt) - Version of crypto.js
+// 0x0A: Password Version (varInt) - Version of password.js
+// 0x0B: App Version (varInt) - Version of app.js
 
 function encodeTLV(tag, value) {
     let valueBytes;
@@ -181,6 +263,15 @@ function decodeTLV(buffer, offset) {
 function createToken(keypairId, publicKeyRaw, curve, constraints, partnerKeypairId = null) {
     const parts = [];
 
+    // Tag 0x09: Crypto Version (varInt)
+    parts.push(encodeTLV(0x09, encodeVarInt(CRYPTO_VERSION)));
+
+    // Tag 0x0A: Password Version (varInt)
+    parts.push(encodeTLV(0x0A, encodeVarInt(PASSWORD_VERSION)));
+
+    // Tag 0x0B: App Version (varInt)
+    parts.push(encodeTLV(0x0B, encodeVarInt(APP_VERSION)));
+
     // Tag 0x01: Keypair ID
     parts.push(encodeTLV(0x01, keypairId));
 
@@ -247,6 +338,11 @@ function parseToken(tokenString) {
             publicKeyRaw: null,
             curve: null,
             partnerKeypairId: null,
+            versions: {
+                crypto: 1,
+                password: 1,
+                app: 1
+            },
             constraints: {
                 minLength: 16,
                 maxLength: 32,
@@ -303,6 +399,15 @@ function parseToken(tokenString) {
                     break;
                 case 0x08: // Partner Keypair ID
                     result.partnerKeypairId = decoder.decode(tlv.value);
+                    break;
+                case 0x09: // Crypto Version
+                    result.versions.crypto = decodeVarInt(tlv.value.buffer, 0, 0).value;
+                    break;
+                case 0x0A: // Password Version
+                    result.versions.password = decodeVarInt(tlv.value.buffer, 0, 0).value;
+                    break;
+                case 0x0B: // App Version
+                    result.versions.app = decodeVarInt(tlv.value.buffer, 0, 0).value;
                     break;
             }
 

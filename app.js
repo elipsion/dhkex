@@ -8,6 +8,11 @@
 // - Integration of crypto.js and password.js functionalities
 
 // ========================================
+// Version Constants
+// ========================================
+const APP_VERSION = 1;
+
+// ========================================
 // State Management
 // ========================================
 const state = {
@@ -51,6 +56,51 @@ function updateBitSecurityUI(constraints) {
             estimateEl.classList.add('strong');
         }
     }
+}
+
+// ========================================
+// Version Compatibility Checking
+// ========================================
+function checkVersionCompatibility(theirVersions) {
+    const myVersions = {
+        crypto: CRYPTO_VERSION,
+        password: PASSWORD_VERSION,
+        app: APP_VERSION
+    };
+
+    // Check for critical version mismatches (crypto/password)
+    // These affect password generation algorithms - incompatible!
+    const criticalMismatches = [];
+    
+    if (theirVersions.crypto !== myVersions.crypto) {
+        criticalMismatches.push(`crypto v${theirVersions.crypto} vs v${myVersions.crypto}`);
+    }
+    
+    if (theirVersions.password !== myVersions.password) {
+        criticalMismatches.push(`password v${theirVersions.password} vs v${myVersions.password}`);
+    }
+    
+    // Critical mismatches mean different algorithms - passwords will differ!
+    if (criticalMismatches.length > 0) {
+        return {
+            compatible: false,
+            reason: `Algorithm version mismatch (${criticalMismatches.join(', ')}). You are running different versions - your generated passwords will differ!`
+        };
+    }
+    
+    // Check for app version mismatch (non-critical, UX only)
+    if (theirVersions.app !== myVersions.app) {
+        return {
+            compatible: true,
+            reason: `App version mismatch (theirs: v${theirVersions.app}, yours: v${myVersions.app}). This only affects user experience - passwords will still match.`
+        };
+    }
+
+    // All versions match
+    return {
+        compatible: true,
+        reason: 'All versions match'
+    };
 }
 
 // ========================================
@@ -392,6 +442,20 @@ async function processPartnerToken(tokenString) {
         return;
     }
 
+    // Check version compatibility
+    if (parsed.versions) {
+        const compatibility = checkVersionCompatibility(parsed.versions);
+        if (!compatibility.compatible) {
+            // Critical mismatch - algorithms differ, cannot proceed
+            showToast('🚫 ' + compatibility.reason, 'error', 10000);
+            return;
+        } else if (compatibility.reason && !compatibility.reason.includes('match')) {
+            // Non-critical warning (app version mismatch only)
+            console.warn('Version compatibility:', compatibility.reason);
+            showToast('ℹ️ ' + compatibility.reason, 'warning', 6000);
+        }
+    }
+
     // Import the partner's public key
     const partnerPublicKey = await crypto.subtle.importKey(
         'raw',
@@ -474,15 +538,15 @@ async function deriveAndDisplayPassword() {
     try {
         // Use password.js to derive password with metadata
         const result = await derivePasswordWithMetadata(
-        activeKeypair.privateKey,
-        state.partnerPublicKey,
-        activeKeypair.curve,
+            activeKeypair.privateKey,
+            state.partnerPublicKey,
+            activeKeypair.curve,
             activeKeypair.id,
             state.partnerKeypairId,
             state.constraints
         );
 
-    // Generate verification token
+        // Generate verification token
         const verificationToken = generateVerificationToken(
             activeKeypair.publicKeyRaw,
             state.partnerPublicKeyRaw,
@@ -490,10 +554,10 @@ async function deriveAndDisplayPassword() {
             24
         );
 
-    // Display results
+        // Display results
         document.getElementById('sharedPassword').textContent = result.password;
-    document.getElementById('verificationToken').textContent = verificationToken;
-    document.getElementById('resultsSection').classList.remove('hidden');
+        document.getElementById('verificationToken').textContent = verificationToken;
+        document.getElementById('resultsSection').classList.remove('hidden');
 
         // Update actual bit security in results section
         const actualSecurityEl = document.getElementById('bitSecurityActual');

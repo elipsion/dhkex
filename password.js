@@ -9,6 +9,11 @@
 // - Bit-equivalent security calculations
 
 // ========================================
+// Version Constants
+// ========================================
+const PASSWORD_VERSION = 1;
+
+// ========================================
 // Character Set Building
 // ========================================
 function buildCharacterSet(constraints) {
