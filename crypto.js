@@ -120,6 +120,145 @@ function decodeVarInt(buffer, offset, defaultValue) {
 }
 
 // ========================================
+// TLV Tag Definitions
+// ========================================
+// Supported curve names for ECDH
+const CURVE_NAMES = ['P-256', 'P-384', 'P-521'];
+
+// Reusable encoder/decoder functions
+const encoders = {
+    string: (value) => new TextEncoder().encode(value),
+    uint8: (value) => {
+        const num = parseInt(value);
+        if (isNaN(num) || num < 0 || num > 255) {
+            throw new Error('Must be 0-255');
+        }
+        return new Uint8Array([num]);
+    },
+    varint: (value) => {
+        const num = parseInt(value);
+        if (isNaN(num) || num < 0) {
+            throw new Error('Must be positive integer');
+        }
+        return encodeVarInt(num);
+    },
+    binary: (value) => {
+        const hex = value.replace(/[^0-9a-fA-F]/g, '');
+        if (hex.length % 2 !== 0) {
+            throw new Error('Hex must have even number of characters');
+        }
+        const bytes = new Uint8Array(hex.length / 2);
+        for (let i = 0; i < hex.length; i += 2) {
+            bytes[i / 2] = parseInt(hex.substr(i, 2), 16);
+        }
+        return bytes;
+    },
+    curve: (value) => {
+        const curveIndex = CURVE_NAMES.indexOf(value);
+        if (curveIndex >= 0) {
+            return new Uint8Array([curveIndex]);
+        }
+        const num = parseInt(value);
+        if (isNaN(num) || num < 0 || num > 255) {
+            throw new Error('Invalid curve');
+        }
+        return new Uint8Array([num]);
+    },
+    bitfield: (value) => {
+        // Value is an integer (e.g., 0x0F for flags)
+        const num = parseInt(value);
+        if (isNaN(num) || num < 0) {
+            throw new Error('Must be non-negative integer');
+        }
+        // Encode as minimal bytes needed
+        if (num === 0) return new Uint8Array(0);
+        const bytes = [];
+        let n = num;
+        while (n > 0) {
+            bytes.unshift(n & 0xFF);
+            n = n >>> 8;
+        }
+        return new Uint8Array(bytes);
+    }
+};
+
+const decoders = {
+    string: (bytes) => new TextDecoder().decode(bytes),
+    uint8: (bytes) => bytes.length > 0 ? bytes[0] : 0,
+    varint: (bytes) => decodeVarInt(bytes.buffer, 0, 0).value,
+    binary: (bytes) => Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join(''),
+    curve: (bytes) => {
+        const index = bytes.length > 0 ? bytes[0] : 0;
+        return CURVE_NAMES[index] || index;
+    },
+    bitfield: (bytes) => {
+        // Return as integer (e.g., 0x0F)
+        if (bytes.length === 0) return 0;
+        let result = 0;
+        for (let i = 0; i < bytes.length; i++) {
+            result = (result << 8) | bytes[i];
+        }
+        return result;
+    }
+};
+
+// Tag definitions
+const TAG_DEFINITIONS = {
+    0x01: { name: 'Keypair ID', type: 'string', length: 6 },
+    0x02: { name: 'Public Key', type: 'binary', length: null },
+    0x03: { name: 'Curve', type: 'curve', length: 1 },
+    0x04: { name: 'Min Length', type: 'uint8', length: 1 },
+    0x05: { name: 'Max Length', type: 'uint8', length: 1 },
+    0x06: { name: 'Charset Flags', type: 'bitfield', length: null },
+    0x07: { name: 'Excluded Chars', type: 'string', length: null },
+    0x08: { name: 'Partner Keypair ID', type: 'string', length: 6 },
+    0x09: { name: 'Crypto Version', type: 'varint', length: null },
+    0x0A: { name: 'Password Version', type: 'varint', length: null },
+    0x0B: { name: 'App Version', type: 'varint', length: null }
+};
+
+// Get sorted list of tag names for dropdowns
+function getTagNameOptions() {
+    const options = [];
+    for (const tag in TAG_DEFINITIONS) {
+        options.push({ tag: parseInt(tag), name: TAG_DEFINITIONS[tag].name });
+    }
+    options.sort((a, b) => a.tag - b.tag);
+    return options;
+}
+
+// Get field definition (with optional custom type override)
+function getTagDefinition(tag, customType = null) {
+    const def = TAG_DEFINITIONS[tag] || { name: 'Custom', type: 'binary', length: null };
+    if (customType) {
+        return { ...def, type: customType };
+    }
+    return def;
+}
+
+// Encode value based on tag (or custom type)
+function encodeTagValue(tag, value, customType = null) {
+    const def = getTagDefinition(tag, customType);
+    const encoder = encoders[def.type] || encoders.binary;
+    try {
+        return encoder(value);
+    } catch (e) {
+        throw new Error(`Failed to encode ${def.name}: ${e.message}`);
+    }
+}
+
+// Decode value based on tag (or custom type)
+function decodeTagValue(tag, bytes, customType = null) {
+    const def = getTagDefinition(tag, customType);
+    const decoder = decoders[def.type] || decoders.binary;
+    try {
+        return decoder(bytes);
+    } catch (e) {
+        return 'Error: ' + e.message;
+    }
+}
+
+// ========================================
 // Cryptographic Functions
 // ========================================
 async function generateKeypair(curveName) {
@@ -178,20 +317,6 @@ async function saveKeypairsToSession() {
 // ========================================
 // Token Management (TLV Encoding)
 // ========================================
-// TLV Tags:
-// 0x01: Keypair ID (string)
-// 0x02: Public Key (binary)
-// 0x03: Curve (1 byte: 0=P-256, 1=P-384, 2=P-521)
-// 0x04: Min Length (1 byte)
-// 0x05: Max Length (1 byte)
-// 0x06: Charset Flags (variable length, bit-packed)
-//       Byte 0: bit 0=uppercase, 1=lowercase, 2=numbers, 3=special, 4=similar, 5=whitespace, 6=diacritics, 7=emoji
-// 0x07: Excluded chars (string)
-// 0x08: Partner Keypair ID (string) - ID of the keypair that should be used to respond
-// 0x09: Crypto Version (varInt) - Version of crypto.js
-// 0x0A: Password Version (varInt) - Version of password.js
-// 0x0B: App Version (varInt) - Version of app.js
-
 function encodeTLV(tag, value) {
     let valueBytes;
     
@@ -263,56 +388,43 @@ function decodeTLV(buffer, offset) {
 function createToken(keypairId, publicKeyRaw, curve, constraints, partnerKeypairId = null) {
     const parts = [];
 
-    // Tag 0x09: Crypto Version (varInt)
-    parts.push(encodeTLV(0x09, encodeVarInt(CRYPTO_VERSION)));
-
-    // Tag 0x0A: Password Version (varInt)
-    parts.push(encodeTLV(0x0A, encodeVarInt(PASSWORD_VERSION)));
-
-    // Tag 0x0B: App Version (varInt)
-    parts.push(encodeTLV(0x0B, encodeVarInt(APP_VERSION)));
-
     // Tag 0x01: Keypair ID
-    parts.push(encodeTLV(0x01, keypairId));
+    parts.push(encodeTLV(0x01, encodeTagValue(0x01, keypairId)));
 
-    // Tag 0x02: Public Key
+    // Tag 0x02: Public Key (raw bytes, not using encoder)
     parts.push(encodeTLV(0x02, publicKeyRaw));
 
-    // Tag 0x03: Curve (encode as number)
-    const curveMap = { 'P-256': 0, 'P-384': 1, 'P-521': 2 };
-    parts.push(encodeTLV(0x03, curveMap[curve] || 0));
+    // Tag 0x03: Curve
+    parts.push(encodeTLV(0x03, encodeTagValue(0x03, curve)));
 
     // Tag 0x04: Min Length
-    parts.push(encodeTLV(0x04, constraints.minLength));
+    parts.push(encodeTLV(0x04, encodeTagValue(0x04, constraints.minLength)));
 
     // Tag 0x05: Max Length
-    parts.push(encodeTLV(0x05, constraints.maxLength));
+    parts.push(encodeTLV(0x05, encodeTagValue(0x05, constraints.maxLength)));
 
-    // Tag 0x06: Charset Flags (multi-byte support)
-    let flags = 0;
-    if (constraints.uppercase) flags |= 0x01;
-    if (constraints.lowercase) flags |= 0x02;
-    if (constraints.numbers) flags |= 0x04;
-    if (constraints.special) flags |= 0x08;
-    if (constraints.similar) flags |= 0x10;
-    if (constraints.whitespace) flags |= 0x20;
-    if (constraints.diacritics) flags |= 0x40;
-    if (constraints.emoji) flags |= 0x80;
-    
-    // Only add if flags is non-zero
-    if (flags !== 0) {
-        parts.push(encodeTLV(0x06, flags));
-    }
+    // Tag 0x06: Charset Flags
+    const flags = constraintsToFlags(constraints);
+    parts.push(encodeTLV(0x06, encodeTagValue(0x06, flags)));
 
     // Tag 0x07: Excluded chars (only if non-empty)
     if (constraints.excluded) {
-        parts.push(encodeTLV(0x07, constraints.excluded));
+        parts.push(encodeTLV(0x07, encodeTagValue(0x07, constraints.excluded)));
     }
 
     // Tag 0x08: Partner Keypair ID (only if provided)
     if (partnerKeypairId) {
-        parts.push(encodeTLV(0x08, partnerKeypairId));
+        parts.push(encodeTLV(0x08, encodeTagValue(0x08, partnerKeypairId)));
     }
+
+    // Tag 0x09: Crypto Version (varInt)
+    parts.push(encodeTLV(0x09, encodeTagValue(0x09, CRYPTO_VERSION)));
+
+    // Tag 0x0A: Password Version (varInt)
+    parts.push(encodeTLV(0x0A, encodeTagValue(0x0A, PASSWORD_VERSION)));
+
+    // Tag 0x0B: App Version (varInt)
+    parts.push(encodeTLV(0x0B, encodeTagValue(0x0B, APP_VERSION)));
 
     // Concatenate all parts
     const totalLength = parts.reduce((sum, part) => sum + part.length, 0);
@@ -358,59 +470,29 @@ function parseToken(tokenString) {
             }
         };
 
-        const curveMap = ['P-256', 'P-384', 'P-521'];
-        let offset = 0;
+        // Tag handlers for special cases
+        const handlers = {
+            0x01: (val) => result.keypairId = decodeTagValue(0x01, val),
+            0x02: (val) => result.publicKeyRaw = val.buffer,
+            0x03: (val) => result.curve = decodeTagValue(0x03, val),
+            0x04: (val) => result.constraints.minLength = decodeTagValue(0x04, val),
+            0x05: (val) => result.constraints.maxLength = decodeTagValue(0x05, val),
+            0x06: (val) => Object.assign(result.constraints, flagsToConstraints(decodeTagValue(0x06, val))),
+            0x07: (val) => result.constraints.excluded = decodeTagValue(0x07, val),
+            0x08: (val) => result.partnerKeypairId = decodeTagValue(0x08, val),
+            0x09: (val) => result.versions.crypto = decodeTagValue(0x09, val),
+            0x0A: (val) => result.versions.password = decodeTagValue(0x0A, val),
+            0x0B: (val) => result.versions.app = decodeTagValue(0x0B, val)
+        };
 
+        let offset = 0;
         while (offset < buffer.byteLength) {
             const tlv = decodeTLV(buffer, offset);
             if (!tlv) break;
-
-            const decoder = new TextDecoder();
-
-            switch (tlv.tag) {
-                case 0x01: // Keypair ID
-                    result.keypairId = decoder.decode(tlv.value);
-                    break;
-                case 0x02: // Public Key
-                    result.publicKeyRaw = tlv.value.buffer;
-                    break;
-                case 0x03: // Curve
-                    result.curve = curveMap[tlv.value[0]] || 'P-256';
-                    break;
-                case 0x04: // Min Length
-                    result.constraints.minLength = tlv.value[0];
-                    break;
-                case 0x05: // Max Length
-                    result.constraints.maxLength = tlv.value[0];
-                    break;
-                case 0x06: // Charset Flags
-                    const flags = tlv.value[0];
-                    result.constraints.uppercase = !!(flags & 0x01);
-                    result.constraints.lowercase = !!(flags & 0x02);
-                    result.constraints.numbers = !!(flags & 0x04);
-                    result.constraints.special = !!(flags & 0x08);
-                    result.constraints.similar = !!(flags & 0x10);
-                    result.constraints.whitespace = !!(flags & 0x20);
-                    result.constraints.diacritics = !!(flags & 0x40);
-                    result.constraints.emoji = !!(flags & 0x80);
-                    break;
-                case 0x07: // Excluded chars
-                    result.constraints.excluded = decoder.decode(tlv.value);
-                    break;
-                case 0x08: // Partner Keypair ID
-                    result.partnerKeypairId = decoder.decode(tlv.value);
-                    break;
-                case 0x09: // Crypto Version
-                    result.versions.crypto = decodeVarInt(tlv.value.buffer, 0, 0).value;
-                    break;
-                case 0x0A: // Password Version
-                    result.versions.password = decodeVarInt(tlv.value.buffer, 0, 0).value;
-                    break;
-                case 0x0B: // App Version
-                    result.versions.app = decodeVarInt(tlv.value.buffer, 0, 0).value;
-                    break;
-            }
-
+            
+            const handler = handlers[tlv.tag];
+            if (handler) handler(tlv.value);
+            
             offset = tlv.nextOffset;
         }
 

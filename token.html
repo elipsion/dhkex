@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DHKEX Token Builder</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="token.css">
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Token Builder</h1>
+        <p class="subtitle">Construct and manipulate DHKEX TLV tokens</p>
+
+        <!-- Load Token Section -->
+        <div class="section">
+            <h2>📥 Load Token</h2>
+            <div class="form-group">
+                <label for="tokenInput">Paste base64 token to decode and edit:</label>
+                <textarea id="tokenInput" placeholder="Paste token here..."></textarea>
+                <div class="button-group">
+                    <button onclick="loadToken()">Load Token</button>
+                    <button class="secondary" onclick="clearFields()">Clear All Fields</button>
+                    <button class="secondary" onclick="newToken()">New Empty Token</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Token Fields Section -->
+        <div class="section">
+            <h2>📝 Token Fields</h2>
+            <div class="info-box">
+                <strong>Instructions:</strong> Drag rows to reorder fields. Edit values directly. Known field types are parsed automatically. The length field is calculated automatically and cannot be overridden.
+            </div>
+            
+            <table id="fieldsTable">
+                <thead>
+                    <tr>
+                        <th></th>
+                        <th class="tag-cell">Tag</th>
+                        <th class="name-cell">Field Name</th>
+                        <th class="type-cell">Type</th>
+                        <th class="length-cell">Length</th>
+                        <th class="value-cell">Value</th>
+                        <th class="actions-cell">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="fieldsBody">
+                    <tr>
+                        <td colspan="7" style="text-align: center; color: #999; padding: 30px;">
+                            No fields. Load a token or add a new field.
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="button-group">
+                <button onclick="addField()">➕ Add Field</button>
+            </div>
+        </div>
+
+        <!-- Output Section -->
+        <div class="section">
+            <h2>📤 Output Token</h2>
+            <div class="stats">
+                <div class="stat-item">
+                    <div class="stat-label">Field Count</div>
+                    <div class="stat-value" id="fieldCount">0</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Token Size</div>
+                    <div class="stat-value" id="tokenSize">0 bytes</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Base64 Length</div>
+                    <div class="stat-value" id="base64Length">0 chars</div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="tokenOutput">Generated token (base64):</label>
+                <textarea id="tokenOutput" readonly></textarea>
+                <button class="copy-button" onclick="copyToken()">📋 Copy Token</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="crypto.js"></script>
+    <script>
+        // All tag definitions now in crypto.js
+        // TAG_DEFINITIONS, CURVE_NAMES, getTagNameOptions, getTagDefinition, encodeTagValue, decodeTagValue
+
+        // UI-specific formatting functions
+        function formatBitfieldForDisplay(intValue) {
+            // Format integer as binary with nibbles for UI display
+            if (intValue === 0) return '0000 0000';
+            const binary = intValue.toString(2);
+            // Pad to next multiple of 8
+            const paddedLength = Math.ceil(binary.length / 8) * 8;
+            const padded = binary.padStart(paddedLength, '0');
+            // Split into nibbles
+            const nibbles = [];
+            for (let i = 0; i < padded.length; i += 4) {
+                nibbles.push(padded.substring(i, i + 4));
+            }
+            return nibbles.join(' ');
+        }
+
+        function parseBitfieldFromDisplay(binaryString) {
+            // Parse binary string from UI back to integer
+            const cleaned = binaryString.replace(/[^01]/g, '');
+            if (cleaned.length === 0) return 0;
+            return parseInt(cleaned, 2);
+        }
+
+        let fields = [];
+        let draggedRow = null;
+
+        // Load token and parse fields
+        function loadToken() {
+            const input = document.getElementById('tokenInput').value.trim();
+            if (!input) {
+                alert('Please paste a token first');
+                return;
+            }
+
+            try {
+                const buffer = base64ToArrayBuffer(input);
+                fields = [];
+                
+                let offset = 0;
+                while (offset < buffer.byteLength) {
+                    const tlv = decodeTLV(buffer, offset);
+                    if (!tlv) break;
+                    
+                    fields.push({
+                        tag: tlv.tag,
+                        value: tlv.value,
+                        rawValue: Array.from(tlv.value).map(b => b.toString(16).padStart(2, '0')).join('')
+                    });
+                    
+                    offset = tlv.nextOffset;
+                }
+
+                renderFields();
+                updateOutput();
+            } catch (e) {
+                alert('Error parsing token: ' + e.message);
+            }
+        }
+
+        // Clear all fields
+        function clearFields() {
+            if (fields.length > 0 && !confirm('Clear all fields?')) {
+                return;
+            }
+            fields = [];
+            renderFields();
+            updateOutput();
+        }
+
+        // Create new empty token
+        function newToken() {
+            clearFields();
+            document.getElementById('tokenInput').value = '';
+        }
+
+        // Add new field
+        function addField() {
+            fields.push({
+                tag: 0x01,
+                value: new Uint8Array(0),
+                rawValue: ''
+            });
+            renderFields();
+            updateOutput();
+        }
+
+        // Remove field
+        function removeField(index) {
+            fields.splice(index, 1);
+            renderFields();
+            updateOutput();
+        }
+
+        // Render fields table
+        function renderFields() {
+            const tbody = document.getElementById('fieldsBody');
+            
+            if (fields.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" style="text-align: center; color: #999; padding: 30px;">
+                            No fields. Load a token or add a new field.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            const tagNameOptions = getTagNameOptions();
+
+            tbody.innerHTML = fields.map((field, index) => {
+                const def = getTagDefinition(field.tag, field.customType);
+                const parsedValue = decodeTagValue(field.tag, field.value, field.customType);
+                
+                // Format bitfield as binary string for UI display
+                let displayValue;
+                if (typeof parsedValue === 'string' && parsedValue.startsWith('Error:')) {
+                    displayValue = field.rawValue;
+                } else if (def.type === 'bitfield') {
+                    displayValue = formatBitfieldForDisplay(parsedValue);
+                } else {
+                    displayValue = parsedValue;
+                }
+
+                // Build field name dropdown
+                const isKnownTag = TAG_DEFINITIONS.hasOwnProperty(field.tag);
+                let nameOptions = tagNameOptions.map(opt => 
+                    `<option value="${opt.tag}" ${opt.tag === field.tag ? 'selected' : ''}>${opt.name} (0x${opt.tag.toString(16).padStart(2, '0').toUpperCase()})</option>`
+                ).join('');
+                if (!isKnownTag) {
+                    nameOptions += `<option value="custom" selected>Custom (0x${field.tag.toString(16).padStart(2, '0').toUpperCase()})</option>`;
+                }
+
+                return `
+                    <tr draggable="true" data-index="${index}"
+                        ondragstart="handleDragStart(event, ${index})"
+                        ondragover="handleDragOver(event)"
+                        ondragenter="handleDragEnter(event)"
+                        ondragleave="handleDragLeave(event)"
+                        ondrop="handleDrop(event, ${index})"
+                        ondragend="handleDragEnd(event)">
+                        <td><span class="drag-handle">⋮⋮</span></td>
+                        <td class="tag-cell">
+                            <input type="number" min="0" max="255" value="${field.tag}" 
+                                   onchange="updateTag(${index}, this.value)">
+                        </td>
+                        <td class="name-cell">
+                            <select onchange="updateFieldName(${index}, this.value)">
+                                ${nameOptions}
+                            </select>
+                        </td>
+                        <td class="type-cell">
+                            <select onchange="updateType(${index}, this.value)">
+                                <option value="binary" ${def.type === 'binary' ? 'selected' : ''}>Binary (Hex)</option>
+                                <option value="string" ${def.type === 'string' ? 'selected' : ''}>String (UTF-8)</option>
+                                <option value="uint8" ${def.type === 'uint8' ? 'selected' : ''}>UInt8</option>
+                                <option value="curve" ${def.type === 'curve' ? 'selected' : ''}>Curve</option>
+                                <option value="varint" ${def.type === 'varint' ? 'selected' : ''}>VarInt</option>
+                                <option value="bitfield" ${def.type === 'bitfield' ? 'selected' : ''}>Binary (bitfield)</option>
+                            </select>
+                        </td>
+                        <td class="length-cell">
+                            <input type="text" value="${field.value.length}" readonly>
+                        </td>
+                        <td class="value-cell">
+                            <input type="text" value="${displayValue}" 
+                                   class="${def.type === 'bitfield' ? 'bitfield-input' : ''}"
+                                   onchange="updateValue(${index}, this.value)"
+                                   placeholder="Enter value...">
+                        </td>
+                        <td class="actions-cell">
+                            <button class="danger" style="padding: 5px 10px; font-size: 0.85em;" 
+                                    onclick="removeField(${index})">🗑️</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // Update tag
+        function updateTag(index, value) {
+            try {
+                const tag = parseInt(value, 10);
+                if (isNaN(tag) || tag < 0 || tag > 255) {
+                    throw new Error('Invalid tag');
+                }
+                fields[index].tag = tag;
+                // Clear custom type override if switching to a known tag
+                if (TAG_DEFINITIONS[tag] && fields[index].customType) {
+                    delete fields[index].customType;
+                }
+                renderFields();
+                updateOutput();
+            } catch (e) {
+                alert('Invalid tag: ' + e.message);
+                renderFields();
+            }
+        }
+
+        // Update field name (from dropdown)
+        function updateFieldName(index, value) {
+            if (value !== 'custom') {
+                const tag = parseInt(value);
+                fields[index].tag = tag;
+                // Clear custom type override when selecting a predefined field
+                if (fields[index].customType) {
+                    delete fields[index].customType;
+                }
+                renderFields();
+                updateOutput();
+            }
+            // If 'custom' is selected, just keep current tag
+        }
+
+        // Update value
+        function updateValue(index, value) {
+            try {
+                const def = getTagDefinition(fields[index].tag, fields[index].customType);
+                
+                // For bitfield, convert binary string to integer before encoding
+                let valueToEncode = value;
+                if (def.type === 'bitfield') {
+                    valueToEncode = parseBitfieldFromDisplay(value);
+                }
+                
+                const bytes = encodeTagValue(fields[index].tag, valueToEncode, fields[index].customType);
+                fields[index].value = bytes;
+                fields[index].rawValue = Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+                renderFields();
+                updateOutput();
+            } catch (e) {
+                alert('Invalid value: ' + e.message);
+                renderFields();
+            }
+        }
+
+        // Update type
+        function updateType(index, type) {
+            // Store custom type override on the field itself
+            const def = TAG_DEFINITIONS[fields[index].tag];
+            if (!def || def.type !== type) {
+                fields[index].customType = type;
+            } else {
+                // Type matches default, remove override
+                delete fields[index].customType;
+            }
+            renderFields();
+        }
+
+        // Drag and drop handlers
+        function handleDragStart(e, index) {
+            draggedRow = index;
+            e.currentTarget.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+        }
+
+        function handleDragOver(e) {
+            if (e.preventDefault) {
+                e.preventDefault();
+            }
+            e.dataTransfer.dropEffect = 'move';
+            return false;
+        }
+
+        function handleDragEnter(e) {
+            e.currentTarget.classList.add('drag-over');
+        }
+
+        function handleDragLeave(e) {
+            e.currentTarget.classList.remove('drag-over');
+        }
+
+        function handleDrop(e, targetIndex) {
+            if (e.stopPropagation) {
+                e.stopPropagation();
+            }
+            e.preventDefault();
+
+            if (draggedRow !== null && draggedRow !== targetIndex) {
+                const draggedField = fields[draggedRow];
+                fields.splice(draggedRow, 1);
+                
+                if (targetIndex > draggedRow) {
+                    fields.splice(targetIndex - 1, 0, draggedField);
+                } else {
+                    fields.splice(targetIndex, 0, draggedField);
+                }
+                
+                renderFields();
+                updateOutput();
+            }
+
+            return false;
+        }
+
+        function handleDragEnd(e) {
+            e.currentTarget.classList.remove('dragging');
+            document.querySelectorAll('tbody tr').forEach(row => {
+                row.classList.remove('drag-over');
+            });
+            draggedRow = null;
+        }
+
+        // Update output token
+        function updateOutput() {
+            try {
+                // Build token from fields
+                const tlvs = fields.map(field => encodeTLV(field.tag, field.value));
+                
+                // Concatenate all TLVs
+                const totalLength = tlvs.reduce((sum, tlv) => sum + tlv.length, 0);
+                const tokenBuffer = new Uint8Array(totalLength);
+                let offset = 0;
+                for (const tlv of tlvs) {
+                    tokenBuffer.set(tlv, offset);
+                    offset += tlv.length;
+                }
+
+                // Convert to base64
+                const base64 = arrayBufferToBase64(tokenBuffer.buffer);
+                document.getElementById('tokenOutput').value = base64;
+
+                // Update stats
+                document.getElementById('fieldCount').textContent = fields.length;
+                document.getElementById('tokenSize').textContent = totalLength + ' bytes';
+                document.getElementById('base64Length').textContent = base64.length + ' chars';
+            } catch (e) {
+                document.getElementById('tokenOutput').value = 'Error: ' + e.message;
+                document.getElementById('fieldCount').textContent = '0';
+                document.getElementById('tokenSize').textContent = '0 bytes';
+                document.getElementById('base64Length').textContent = '0 chars';
+            }
+        }
+
+        // Copy token to clipboard
+        function copyToken() {
+            const output = document.getElementById('tokenOutput');
+            output.select();
+            document.execCommand('copy');
+            
+            const btn = event.target;
+            const originalText = btn.textContent;
+            btn.textContent = '✓ Copied!';
+            setTimeout(() => {
+                btn.textContent = originalText;
+            }, 2000);
+        }
+
+        // Initialize
+        renderFields();
+        updateOutput();
+    </script>
+</body>
+</html>

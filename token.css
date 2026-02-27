@@ -1,0 +1,137 @@
+/* Token Builder Specific Styles */
+
+/* Container width override for wider table */
+.container {
+    max-width: 1200px;
+}
+
+/* Table layout */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+}
+
+thead {
+    background: #667eea;
+    color: white;
+}
+
+th {
+    padding: 12px;
+    text-align: left;
+    font-weight: 600;
+}
+
+tbody tr {
+    border-bottom: 1px solid #e0e0e0;
+    cursor: move;
+}
+
+tbody tr:hover {
+    background: #f5f5f5;
+}
+
+tbody tr.dragging {
+    opacity: 0.5;
+}
+
+tbody tr.drag-over {
+    border-top: 3px solid #667eea;
+}
+
+td {
+    padding: 12px;
+}
+
+td input {
+    width: 100%;
+    padding: 5px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-family: monospace;
+}
+
+td select {
+    width: 100%;
+    padding: 5px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+td input[type="number"] {
+    width: 100%;
+    padding: 5px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-family: monospace;
+}
+
+td input[readonly] {
+    background: #f5f5f5;
+    color: #666;
+    cursor: not-allowed;
+}
+
+td input.bitfield-input {
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    letter-spacing: 0.5px;
+}
+
+/* Column widths */
+.tag-cell {
+    width: 80px;
+}
+
+.name-cell {
+    width: 200px;
+}
+
+.type-cell {
+    width: 140px;
+}
+
+.length-cell {
+    width: 100px;
+}
+
+.value-cell {
+    min-width: 280px;
+}
+
+.actions-cell {
+    width: 80px;
+    text-align: center;
+}
+
+/* Drag handle */
+.drag-handle {
+    cursor: grab;
+    font-size: 1.2em;
+    color: #999;
+    margin-right: 8px;
+}
+
+.drag-handle:active {
+    cursor: grabbing;
+}
+
+/* Error states */
+.error {
+    background: #ffebee !important;
+    border-left: 3px solid #dc3545;
+}
+
+.error-message {
+    color: #dc3545;
+    font-size: 0.85em;
+    margin-top: 5px;
+}
+
+/* Value preview text */
+.value-preview {
+    font-size: 0.85em;
+    color: #666;
+    margin-top: 3px;
+    font-style: italic;
+}

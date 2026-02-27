@@ -14,6 +14,37 @@
 const PASSWORD_VERSION = 1;
 
 // ========================================
+// Constraint Bitfield Conversion
+// ========================================
+// Convert constraints object to integer bitfield
+function constraintsToFlags(constraints) {
+    let flags = 0;
+    if (constraints.uppercase) flags |= 0x01;
+    if (constraints.lowercase) flags |= 0x02;
+    if (constraints.numbers) flags |= 0x04;
+    if (constraints.special) flags |= 0x08;
+    if (constraints.similar) flags |= 0x10;
+    if (constraints.whitespace) flags |= 0x20;
+    if (constraints.diacritics) flags |= 0x40;
+    if (constraints.emoji) flags |= 0x80;
+    return flags;
+}
+
+// Convert integer bitfield to constraints object
+function flagsToConstraints(flags) {
+    return {
+        uppercase: !!(flags & 0x01),
+        lowercase: !!(flags & 0x02),
+        numbers: !!(flags & 0x04),
+        special: !!(flags & 0x08),
+        similar: !!(flags & 0x10),
+        whitespace: !!(flags & 0x20),
+        diacritics: !!(flags & 0x40),
+        emoji: !!(flags & 0x80)
+    };
+}
+
+// ========================================
 // Character Set Building
 // ========================================
 function buildCharacterSet(constraints) {
