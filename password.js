@@ -16,6 +16,23 @@ const PASSWORD_VERSION = 1;
 // ========================================
 // Constraint Bitfield Conversion
 // ========================================
+// Get default constraint values
+function getDefaultConstraints() {
+    return {
+        minLength: 16,
+        maxLength: 32,
+        uppercase: true,
+        lowercase: true,
+        numbers: true,
+        special: true,
+        similar: true,
+        whitespace: false,
+        diacritics: false,
+        emoji: false,
+        excluded: ''
+    };
+}
+
 // Convert constraints object to integer bitfield
 function constraintsToFlags(constraints) {
     let flags = 0;
@@ -109,77 +126,6 @@ function buildConstraintsInfoBytes(constraints) {
     const deterministic = getDeterministicConstraints(constraints);
     const encoder = new TextEncoder();
     return encoder.encode(JSON.stringify(deterministic));
-}
-
-// ========================================
-// Key Derivation Utilities
-// ========================================
-function xorStringsToBytes(a, b) {
-    if (!a || !b) {
-        return new Uint8Array([]);
-    }
-    const encoder = new TextEncoder();
-    const aBytes = encoder.encode(a);
-    const bBytes = encoder.encode(b);
-    const maxLen = Math.max(aBytes.length, bBytes.length);
-    const result = new Uint8Array(maxLen);
-    for (let i = 0; i < maxLen; i++) {
-        const aByte = i < aBytes.length ? aBytes[i] : 0;
-        const bByte = i < bBytes.length ? bBytes[i] : 0;
-        result[i] = aByte ^ bByte;
-    }
-    return result;
-}
-
-async function deriveHkdfSaltFromKeyIds(myKeypairId, partnerKeypairId, bits = 256) {
-    if (!myKeypairId || !partnerKeypairId) {
-        return new Uint8Array([]);
-    }
-    const xorBytes = xorStringsToBytes(myKeypairId, partnerKeypairId);
-    const keyMaterial = await crypto.subtle.importKey(
-        'raw',
-        xorBytes,
-        { name: 'PBKDF2' },
-        false,
-        ['deriveBits']
-    );
-    const salt = new TextEncoder().encode('dhkex-keyid-salt');
-    const derived = await crypto.subtle.deriveBits(
-        {
-            name: 'PBKDF2',
-            hash: 'SHA-256',
-            salt,
-            iterations: 10000
-        },
-        keyMaterial,
-        bits
-    );
-    return new Uint8Array(derived);
-}
-
-// ========================================
-// Shared Secret Derivation
-// ========================================
-async function deriveSharedSecret(privateKey, publicKey, curveName, infoBytes, saltBytes, curveBits, bits = 256) {
-    const sharedSecret = await crypto.subtle.deriveBits(
-        {
-            name: 'ECDH',
-            public: publicKey
-        },
-        privateKey,
-        curveBits
-    );
-    const result = await crypto.subtle.deriveBits(
-        {
-            name: 'HKDF',
-            hash: 'SHA-256',
-            salt: saltBytes || new Uint8Array([]),
-            info: infoBytes || new Uint8Array([])
-        },
-        await crypto.subtle.importKey('raw', sharedSecret, { name: 'HKDF' }, false, ['deriveBits']),
-        bits
-    );
-    return new Uint8Array(result);
 }
 
 // ========================================

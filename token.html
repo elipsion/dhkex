@@ -85,10 +85,8 @@
     </div>
 
     <script src="crypto.js"></script>
+    <script src="token.js"></script>
     <script>
-        // All tag definitions now in crypto.js
-        // TAG_DEFINITIONS, CURVE_NAMES, getTagNameOptions, getTagDefinition, encodeTagValue, decodeTagValue
-
         // UI-specific formatting functions
         function formatBitfieldForDisplay(intValue) {
             // Format integer as binary with nibbles for UI display
@@ -110,6 +108,24 @@
             const cleaned = binaryString.replace(/[^01]/g, '');
             if (cleaned.length === 0) return 0;
             return parseInt(cleaned, 2);
+        }
+
+        function formatBinaryForDisplay(bytes) {
+            // Convert Uint8Array to hex string for UI display
+            return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
+        function parseBinaryFromDisplay(hexString) {
+            // Convert hex string from UI to Uint8Array
+            const hex = hexString.replace(/[^0-9a-fA-F]/g, '');
+            if (hex.length % 2 !== 0) {
+                throw new Error('Hex must have even number of characters');
+            }
+            const bytes = new Uint8Array(hex.length / 2);
+            for (let i = 0; i < hex.length; i += 2) {
+                bytes[i / 2] = parseInt(hex.substr(i, 2), 16);
+            }
+            return bytes;
         }
 
         let fields = [];
@@ -203,12 +219,14 @@
                 const def = getTagDefinition(field.tag, field.customType);
                 const parsedValue = decodeTagValue(field.tag, field.value, field.customType);
                 
-                // Format bitfield as binary string for UI display
+                // Format values for UI display
                 let displayValue;
                 if (typeof parsedValue === 'string' && parsedValue.startsWith('Error:')) {
                     displayValue = field.rawValue;
                 } else if (def.type === 'bitfield') {
                     displayValue = formatBitfieldForDisplay(parsedValue);
+                } else if (def.type === 'binary') {
+                    displayValue = formatBinaryForDisplay(parsedValue);
                 } else {
                     displayValue = parsedValue;
                 }
@@ -308,10 +326,12 @@
             try {
                 const def = getTagDefinition(fields[index].tag, fields[index].customType);
                 
-                // For bitfield, convert binary string to integer before encoding
+                // Convert display values to appropriate types before encoding
                 let valueToEncode = value;
                 if (def.type === 'bitfield') {
                     valueToEncode = parseBitfieldFromDisplay(value);
+                } else if (def.type === 'binary') {
+                    valueToEncode = parseBinaryFromDisplay(value);
                 }
                 
                 const bytes = encodeTagValue(fields[index].tag, valueToEncode, fields[index].customType);

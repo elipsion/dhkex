@@ -124,10 +124,10 @@
                             <label>Password Length Range</label>
                             <div class="range-inputs">
                                 <div>
-                                    <input type="number" id="minLength" min="4" max="128" value="16" placeholder="Min">
+                                    <input type="number" id="minLength" min="4" max="128" placeholder="Min">
                                 </div>
                                 <div>
-                                    <input type="number" id="maxLength" min="4" max="128" value="32" placeholder="Max">
+                                    <input type="number" id="maxLength" min="4" max="128" placeholder="Max">
                                 </div>
                             </div>
                         </div>
@@ -136,23 +136,23 @@
                             <label>Character Sets</label>
                             <div class="checkbox-group">
                                 <div class="checkbox-item">
-                                    <input type="checkbox" id="charUppercase" checked>
+                                    <input type="checkbox" id="charUppercase">
                                     <label for="charUppercase">Uppercase (A-Z)</label>
                                 </div>
                                 <div class="checkbox-item">
-                                    <input type="checkbox" id="charLowercase" checked>
+                                    <input type="checkbox" id="charLowercase">
                                     <label for="charLowercase">Lowercase (a-z)</label>
                                 </div>
                                 <div class="checkbox-item">
-                                    <input type="checkbox" id="charNumbers" checked>
+                                    <input type="checkbox" id="charNumbers">
                                     <label for="charNumbers">Numbers (0-9)</label>
                                 </div>
                                 <div class="checkbox-item">
-                                    <input type="checkbox" id="charSpecial" checked>
+                                    <input type="checkbox" id="charSpecial">
                                     <label for="charSpecial">Special (!@#$...)</label>
                                 </div>
                                 <div class="checkbox-item">
-                                    <input type="checkbox" id="charSimilar" checked>
+                                    <input type="checkbox" id="charSimilar">
                                     <label for="charSimilar">Similar (O0Il1)</label>
                                 </div>
                                 <div class="checkbox-item">
@@ -280,6 +280,7 @@
     <script src="crypto.js"></script>
     <script src="password.js"></script>
     <script src="storage.js"></script>
+    <script src="token.js"></script>
     <script src="app.js"></script>
 
     <!-- Confirmation Modal -->

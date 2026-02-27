@@ -26,8 +26,6 @@ const state = {
     constraints: null
 };
 
-const MAX_TOKEN_LENGTH = 8192;
-
 // ========================================
 // Bit Security UI Updates
 // ========================================
@@ -106,6 +104,21 @@ function checkVersionCompatibility(theirVersions) {
 // ========================================
 // Utility Functions
 // ========================================
+function initializeConstraintsForm() {
+    const defaults = getDefaultConstraints();
+    document.getElementById('minLength').value = defaults.minLength;
+    document.getElementById('maxLength').value = defaults.maxLength;
+    document.getElementById('charUppercase').checked = defaults.uppercase;
+    document.getElementById('charLowercase').checked = defaults.lowercase;
+    document.getElementById('charNumbers').checked = defaults.numbers;
+    document.getElementById('charSpecial').checked = defaults.special;
+    document.getElementById('charSimilar').checked = defaults.similar;
+    document.getElementById('charWhitespace').checked = defaults.whitespace;
+    document.getElementById('charDiacritics').checked = defaults.diacritics;
+    document.getElementById('charEmoji').checked = defaults.emoji;
+    document.getElementById('excludedChars').value = defaults.excluded;
+}
+
 function getConstraints() {
     return {
         minLength: parseInt(document.getElementById('minLength').value),
@@ -423,7 +436,12 @@ function updateShareSection() {
         activeKeypair.publicKeyRaw,
         activeKeypair.curve,
         constraints,
-        state.myKeypairIdForPartner
+        state.myKeypairIdForPartner,
+        {
+            crypto: CRYPTO_VERSION,
+            password: PASSWORD_VERSION,
+            app: APP_VERSION
+        }
     );
 
     document.getElementById('myToken').textContent = token;
@@ -714,6 +732,9 @@ document.getElementById('copyVerification').addEventListener('click', function()
 // Initialization
 // ========================================
 window.addEventListener('DOMContentLoaded', async function() {
+    // Initialize form with default constraints
+    initializeConstraintsForm();
+    
     // Load persistent keypairs from localStorage (unencrypted only)
     await loadPersistentKeypairs();
     
