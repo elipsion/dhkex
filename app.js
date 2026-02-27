@@ -33,26 +33,34 @@ function updateBitSecurityUI(constraints) {
     if (!constraints) return;
     
     const charset = buildCharacterSet(constraints);
-    const targetLength = Math.min(constraints.maxLength, Math.floor((constraints.minLength + constraints.maxLength) / 2));
+    const targetLength = calculatePasswordLength(constraints.minLength, constraints.maxLength);
     const bitSecurity = calculateBitSecurity(charset, targetLength);
     
     // Update estimate indicator
     const estimateEl = document.getElementById('bitSecurityEstimate');
     if (estimateEl) {
+        const lengthEl = estimateEl.querySelector('.length-value');
+        if (lengthEl) {
+            lengthEl.textContent = targetLength;
+        }
+
         const valueEl = estimateEl.querySelector('.security-value');
         if (valueEl) {
             valueEl.textContent = bitSecurity;
         }
         
-        // Apply color coding
-        estimateEl.classList.remove('weak', 'moderate', 'strong');
-        if (bitSecurity < 80) {
-            estimateEl.classList.add('weak');
-        } else if (bitSecurity < 128) {
-            estimateEl.classList.add('moderate');
-        } else {
-            estimateEl.classList.add('strong');
-        }
+        // Apply color coding to all indicators based on thresholds
+        const els = document.querySelectorAll('.security-indicator');
+        els.forEach(el => {
+            el.classList.remove('weak', 'moderate', 'strong');
+            if (bitSecurity < 80) {
+                el.classList.add('weak');
+            } else if (bitSecurity < 128) {
+                el.classList.add('moderate');
+            } else {
+                el.classList.add('strong');
+            }
+        });
     }
 }
 

@@ -95,15 +95,6 @@
                             <button class="copy-button" id="copyVerification">Copy</button>
                         </div>
                     </div>
-
-                    <div class="result-item" style="grid-column: 1 / -1;">
-                        <label>Password Strength</label>
-                        <div id="bitSecurityActual" class="security-indicator large">
-                            <span class="security-value">—</span>
-                            <span class="security-label">bits of entropy</span>
-                            <span class="security-description"></span>
-                        </div>
-                    </div>
                 </div>
 
                 <div class="alert alert-warning" style="margin-top: 15px;">
@@ -175,13 +166,6 @@
                             <input type="text" id="excludedChars" placeholder="e.g., &quot;#&grave;'&acute;">
                         </div>
 
-                        <div class="form-group">
-                            <label>Estimated Security</label>
-                            <div id="bitSecurityEstimate" class="security-indicator">
-                                <span class="security-value">—</span>
-                                <span class="security-label">bits of entropy</span>
-                            </div>
-                        </div>
                     </div>
                 </div>
 
@@ -191,6 +175,16 @@
                     <div class="section-content">
                         <div id="partnerConstraintsContent" class="alert alert-info">
                             Waiting for partner's parameters...
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Estimated Security</label>
+                        <div id="bitSecurityEstimate" class="security-indicator">
+                            <span class="length-value">—</span>
+                            <span class="length-label">characters</span>
+                             &nbsp;|&nbsp;
+                            <span class="security-value">—</span>
+                            <span class="security-label">bits of entropy</span>
                         </div>
                     </div>
                 </div>

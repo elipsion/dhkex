@@ -103,6 +103,12 @@ function buildCharacterSet(constraints) {
     }
 }
 
+function calculatePasswordLength(minLength, maxLength) {
+    if (!minLength || !maxLength || minLength <= 0 || maxLength <= 0) {
+        return 0;
+    }
+    return Math.min(maxLength, Math.floor((minLength + maxLength) / 2));
+}
 // ========================================
 // Constraint Processing
 // ========================================
@@ -224,7 +230,7 @@ function calculateBitSecurity(charset, length) {
 async function derivePasswordWithMetadata(privateKey, publicKey, curveName, myKeypairId, partnerKeypairId, constraints) {
     // Build character set and calculate bytes needed
     const charset = buildCharacterSet(constraints);
-    const targetLength = Math.min(constraints.maxLength, Math.floor((constraints.minLength + constraints.maxLength) / 2));
+    const targetLength = calculatePasswordLength(constraints.minLength, constraints.maxLength);
     const bytesPerChar = charset.length <= 256 ? 1 : 2;
     const bitsNeeded = targetLength * bytesPerChar * 8;
 

@@ -786,6 +786,19 @@ textarea {
     transition: all 0.3s ease;
 }
 
+.security-indicator .length-value {
+    font-size: 1.2em;
+    font-weight: 600;
+    color: #333;
+    min-width: 30px;
+}
+
+.security-indicator .length-label {
+    font-size: 0.85em;
+    color: #666;
+    font-weight: 500;
+}
+
 .security-indicator .security-value {
     font-size: 1.5em;
     font-weight: 700;
@@ -807,21 +820,6 @@ textarea {
     font-style: italic;
 }
 
-/* Large variant for results section */
-.security-indicator.large {
-    flex-direction: column;
-    align-items: flex-start;
-    padding: 16px 20px;
-}
-
-.security-indicator.large .security-value {
-    font-size: 2.2em;
-}
-
-.security-indicator.large .security-label {
-    font-size: 0.9em;
-}
-
 /* Color coding for security strength */
 .security-indicator.weak {
     background: #ffebee;
@@ -832,7 +830,15 @@ textarea {
     color: #c62828;
 }
 
+.security-indicator.weak .length-value {
+    color: #c62828;
+}
+
 .security-indicator.weak .security-label {
+    color: #c62828;
+}
+
+.security-indicator.weak .length-label {
     color: #c62828;
 }
 
@@ -849,6 +855,14 @@ textarea {
     color: #f57c00;
 }
 
+.security-indicator.moderate .length-value {
+    color: #f57c00;
+}
+
+.security-indicator.moderate .length-label {
+    color: #f57c00;
+}
+
 .security-indicator.strong {
     background: #e8f5e9;
     border-color: #81c784;
@@ -859,5 +873,13 @@ textarea {
 }
 
 .security-indicator.strong .security-label {
+    color: #2e7d32;
+}
+
+.security-indicator.strong .length-value {
+    color: #2e7d32;
+}
+
+.security-indicator.strong .length-label {
     color: #2e7d32;
 }
