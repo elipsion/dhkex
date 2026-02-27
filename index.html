@@ -95,6 +95,15 @@
                             <button class="copy-button" id="copyVerification">Copy</button>
                         </div>
                     </div>
+
+                    <div class="result-item" style="grid-column: 1 / -1;">
+                        <label>Password Strength</label>
+                        <div id="bitSecurityActual" class="security-indicator large">
+                            <span class="security-value">—</span>
+                            <span class="security-label">bits of entropy</span>
+                            <span class="security-description"></span>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="alert alert-warning" style="margin-top: 15px;">
@@ -164,6 +173,14 @@
                         <div class="form-group">
                             <label>Excluded Characters (optional)</label>
                             <input type="text" id="excludedChars" placeholder="e.g., &quot;#&grave;'&acute;">
+                        </div>
+
+                        <div class="form-group">
+                            <label>Estimated Security</label>
+                            <div id="bitSecurityEstimate" class="security-indicator">
+                                <span class="security-value">—</span>
+                                <span class="security-label">bits of entropy</span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -261,6 +278,8 @@
     </div>
 
     <script src="crypto.js"></script>
+    <script src="password.js"></script>
+    <script src="storage.js"></script>
     <script src="app.js"></script>
 
     <!-- Confirmation Modal -->

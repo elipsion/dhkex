@@ -1,4 +1,13 @@
 // ========================================
+// Main Application Logic
+// ========================================
+// This file manages the application state:
+// - Keypair management and storage (in-memory and storage.js)
+// - Partner token processing and compatibility checking
+// - UI updates based on state changes
+// - Integration of crypto.js and password.js functionalities
+
+// ========================================
 // State Management
 // ========================================
 const state = {
@@ -13,6 +22,36 @@ const state = {
 };
 
 const MAX_TOKEN_LENGTH = 8192;
+
+// ========================================
+// Bit Security UI Updates
+// ========================================
+function updateBitSecurityUI(constraints) {
+    if (!constraints) return;
+    
+    const charset = buildCharacterSet(constraints);
+    const targetLength = Math.min(constraints.maxLength, Math.floor((constraints.minLength + constraints.maxLength) / 2));
+    const bitSecurity = calculateBitSecurity(charset, targetLength);
+    
+    // Update estimate indicator
+    const estimateEl = document.getElementById('bitSecurityEstimate');
+    if (estimateEl) {
+        const valueEl = estimateEl.querySelector('.security-value');
+        if (valueEl) {
+            valueEl.textContent = bitSecurity;
+        }
+        
+        // Apply color coding
+        estimateEl.classList.remove('weak', 'moderate', 'strong');
+        if (bitSecurity < 80) {
+            estimateEl.classList.add('weak');
+        } else if (bitSecurity < 128) {
+            estimateEl.classList.add('moderate');
+        } else {
+            estimateEl.classList.add('strong');
+        }
+    }
+}
 
 // ========================================
 // Utility Functions
@@ -33,44 +72,7 @@ function getConstraints() {
     };
 }
 
-function buildCharacterSet(constraints) {
-    let charset = '';
-    if (constraints.uppercase) charset += 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-    if (constraints.lowercase) charset += 'abcdefghijklmnopqrstuvwxyz';
-    if (constraints.numbers) charset += '0123456789';
-    if (constraints.special) charset += '!@#$%^&*()_+-=[]{}|;:,.<>?';
-    if (constraints.whitespace) charset += ' \t';
-    if (constraints.diacritics) charset += 'àáâäèéêëìíîïòóôöùúûüçñãõÀÁÂÄÈÉÊËÌÍÎÏÒÓÔÖÙÚÛÜÇÑÃÕ';
-    if (constraints.emoji) {
-      charset += '😀😁😂😃😄😅😆😇😈😉😊😋😌😍😎😏😐😑😒😓😔😕😖😗😘😙😚😛😜😝😞😟😠😡😢😣😤😥😦😧😨😩😪😫😬😭😮😯😰😱😲😳😴😵😶😷😸😹😺😻😼😽😾😿🙀🙁🙂🙃🙄';
-      charset += '🙅🙆🙇🙈🙉🙊🙋🙌🙍🙎🙏';
-      charset += '🚀🚁🚂🚃🚄🚅🚆🚇🚈🚉🚊🚋🚌🚍🚎🚏🚐🚑🚒🚓🚔🚕🚖🚗🚘🚙🚚🚛🚜🚝🚞🚟🚠🚡🚢🚣🚤🚥🚦🚧🚨🚩🚪🚫🚬🚭🚮🚯🚰🚱🚲🚳🚴🚵🚶🚷🚸🚹🚺🚻🚼🚽🚾🚿';
-      charset += '🛀🛁🛂🛃🛄🛅';
-      charset += '🤐🤑🤒🤓🤔🤕🤖🤗🤘🤙🤚🤛🤜🤝🤞🤟🤠🤡🤢🤣🤤🤥🤦🤧🤨🤩🤪🤫🤬🤭🤮🤯🤰🤱🤲🤳🤴🤵🤶🤷🤸🤹🤺🤼🤽🤾';
-      charset += '🥀🥁🥂🥃🥄🥅🥇🥈🥉🥊🥋🥌🥍🥎🥏🥐🥑🥒🥓🥔🥕🥖🥗🥘🥙🥚🥛🥜🥝🥞🥟🥠🥡🥢🥣🥤🥥🥦🥧🥨🥩🥪🥫🥬🥭🥮🥯🥰🥱🥳🥴🥵🥶🥺🥻🥼🥽🥾🥿';
-      charset += '🦀🦁🦂🦃🦄🦅🦆🦇🦈🦉🦊🦋🦌🦍🦎🦏🦐🦑🦒🦓🦔🦕🦖🦗🦘🦙🦚🦛🦜🦝🦞🦟🦠🦡🦢🦸🦹🦺🦻🦼🦽🦾🦿';
-      charset += '🧀🧁🧂🧐🧑🧒🧓🧔🧕🧖🧗🧘🧙🧚🧛🧜🧝🧞🧟🧠🧡🧢🧣🧤🧥🧦🧧🧨🧩🧪🧫🧬🧭🧮🧯🧰🧱🧲🧳🧴🧵🧶🧷🧸🧹🧺🧻🧼🧽🧾🧿';
-      charset += '🌀🌁🌂🌃🌄🌅🌆🌇🌈🌉🌊🌋🌌🌍🌎🌏🌐🌑🌒🌓🌔🌕🌖🌗🌘🌙🌚🌛🌜🌝🌞🌟🌠🌭🌮🌯🌰🌱🌲🌳🌴🌵🌶🌷🌸🌹🌺🌻🌼🌽🌾🌿🍀🍁🍂🍃';
-      charset += '🍄🍅🍆🍇🍈🍉🍊🍋🍌🍍🍎🍏🍐🍑🍒🍓🍔🍕🍖🍗🍘🍙🍚🍛🍜🍝🍞🍟🍠🍡🍢🍣🍤🍥🍦🍧🍨🍩🍪🍫🍬🍭🍮🍯🍰🍱🍲🍳🍴🍵🍶🍷🍸🍹🍺🍻🍼🎁🎂🎃🎄🎅🎆🎇🎈🎉🎊🎋🎌🎍🎎🎏🎐🎑🎒🎓';
-      charset += '🎠🎡🎢🎣🎤🎥🎦🎧🎨🎩🎪🎫🎬🎭🎮🎯🎰🎱🎲🎳🎴🎵🎶🎷🎸🎹🎺🎻🎼🎽🎾🎿🏀🏁🏂🏃🏄🏅🏆🏇🏈🏉🏊🏋🏌🏏🏐🏑🏒🏓🏡🏢🏣🏤🏥🏦🏧🏨🏩🏪🏫🏬🏭🏮🏯🏰';
-      charset += '🐀🐁🐂🐃🐄🐅🐆🐇🐈🐉🐊🐋🐌🐍🐎🐏🐐🐑🐒🐓🐔🐕🐖🐗🐘🐙🐚🐛🐜🐝🐞🐟🐠🐡🐢🐣🐤🐥🐦🐧🐨🐩🐪🐫🐬🐭🐮🐯🐰🐱🐲🐳🐴🐵🐶🐷🐸🐹🐺🐻🐼🐽🐾🐿';
-      charset += '👀👁👂👃👄👅👆👇👈👉👊👋👌👍👎👏👐👑👒👓👔👕👖👗👘👙👚👛👜👝👞👟👠👡👢👣👤👥👦👧👨👩👪👫👬👭👮👯👰👱👲👳👴👵👶👷👸👹👺👻👼👽👾👿💀';
-      charset += '💁💂💃💄💅💆💇💈💉💊💋💌💍💎💏💐💑💒💓💔💕💖💗💘💙💚💛💜💝💞💟💠💡💢💣💤💥💦💧💨💩💪💫💬💭💮💯💰💱💲💳💴💵💶💷💸💹💺💻💼💽💾💿📀📁📂📃📄📅📆📇📈📉📊📋📌📍📎📏';
-      charset += '📐📑📒📓📔📕📖📗📘📙📚📛📜📝📞📟📠📡📢📣📤📥📦📧📨📩📪📫📬📭📮📯📰📱📲📳📴📵📶📷📸📹📺📻📼📽📿🔀🔁🔂🔃🔄🔅🔆🔇🔈🔉🔊🔋🔌🔍🔎🔏🔐🔑🔒🔓🔔🔕🔖🔗🔘🔙🔚🔛🔜🔝🔞🔟🔠🔡🔢🔣🔤';
-      charset += '🔥🔦🔧🔨🔩🔪🔫🔬🔭🔮🔯🔰🔱🔲🔳🔴🔵🔶🔷🔸🔹🔺🔻🔼🔽🕌🕍🕎🕐🕑🕒🕓🕔🕕🕖🕗🕘🕙🕚🕛🕜🕝🕞🕟🕠🕡🕢🕣🕤🕥🕦🕧';
-    }
-
-    if (!constraints.similar) {
-        charset = charset.replace(/[O0Il1|]/g, '');
-    }
-
-    if (constraints.excluded) {
-        const excluded = constraints.excluded.split('');
-        return Array.from(charset).filter(c => !excluded.includes(c));
-    } else {
-        return Array.from(charset);
-    }
-}
+// Note: buildCharacterSet moved to password.js
 
 function copyToClipboard(text, buttonId) {
     navigator.clipboard.writeText(text).then(() => {
@@ -445,6 +447,9 @@ async function processPartnerToken(tokenString) {
     // Highlight common constraints
     highlightCommonConstraints(state.constraints);
 
+    // Update bit security indicator with merged constraints
+    updateBitSecurityUI(state.constraints);
+
     // Update our share section to include partner's keypair ID in our token
     updateShareSection();
 
@@ -466,36 +471,58 @@ async function deriveAndDisplayPassword() {
         return;
     }
 
-    // Build character set and calculate bytes needed
-    const charset = buildCharacterSet(state.constraints);
-    const targetLength = Math.min(state.constraints.maxLength, Math.floor((state.constraints.minLength + state.constraints.maxLength) / 2));
-    const bytesPerChar = charset.length <= 256 ? 1 : 2;
-    const bitsNeeded = targetLength * bytesPerChar * 8;
-
-    // Derive shared secret with exactly the number of bits we need
-    const curveBits = activeKeypair.curve === 'P-384' ? 384 : (activeKeypair.curve === 'P-521' ? 521 : 256);
-    const infoBytes = buildConstraintsInfoBytes(state.constraints);
-    const saltBytes = await deriveHkdfSaltFromKeyIds(activeKeypair.id, state.partnerKeypairId, curveBits);
-    const sharedSecret = await deriveSharedSecret(
+    try {
+        // Use password.js to derive password with metadata
+        const result = await derivePasswordWithMetadata(
         activeKeypair.privateKey,
         state.partnerPublicKey,
         activeKeypair.curve,
-        infoBytes,
-        saltBytes,
-        curveBits,
-        bitsNeeded
-    );
-
-    // Generate password
-    const password = derivePassword(sharedSecret, charset, targetLength);
+            activeKeypair.id,
+            state.partnerKeypairId,
+            state.constraints
+        );
 
     // Generate verification token
-    const verificationToken = generateVerificationToken(activeKeypair.publicKeyRaw, state.partnerPublicKeyRaw, state.constraints, 24);
+        const verificationToken = generateVerificationToken(
+            activeKeypair.publicKeyRaw,
+            state.partnerPublicKeyRaw,
+            state.constraints,
+            24
+        );
 
     // Display results
-    document.getElementById('sharedPassword').textContent = password;
+        document.getElementById('sharedPassword').textContent = result.password;
     document.getElementById('verificationToken').textContent = verificationToken;
     document.getElementById('resultsSection').classList.remove('hidden');
+
+        // Update actual bit security in results section
+        const actualSecurityEl = document.getElementById('bitSecurityActual');
+        if (actualSecurityEl) {
+            const valueEl = actualSecurityEl.querySelector('.security-value');
+            const descEl = actualSecurityEl.querySelector('.security-description');
+            
+            if (valueEl) {
+                valueEl.textContent = result.bitSecurity;
+            }
+            
+            if (descEl) {
+                descEl.textContent = `Equivalent to ${result.bitSecurity}-bit symmetric key`;
+            }
+            
+            // Apply color coding
+            actualSecurityEl.classList.remove('weak', 'moderate', 'strong');
+            if (result.bitSecurity < 80) {
+                actualSecurityEl.classList.add('weak');
+            } else if (result.bitSecurity < 128) {
+                actualSecurityEl.classList.add('moderate');
+            } else {
+                actualSecurityEl.classList.add('strong');
+            }
+        }
+    } catch (e) {
+        showToast('Failed to derive password: ' + e.message, 'error');
+        console.error('Password derivation error:', e);
+    }
 }
 
 // ========================================
@@ -605,6 +632,10 @@ document.getElementById('copyVerification').addEventListener('click', function()
 ['minLength', 'maxLength', 'charUppercase', 'charLowercase', 'charNumbers', 'charSpecial', 'charSimilar', 'charWhitespace', 'charDiacritics', 'charEmoji', 'excludedChars'].forEach(id => {
     const element = document.getElementById(id);
     element.addEventListener('change', async function() {
+        // Update bit security estimate
+        const constraints = state.partnerPublicKey ? state.constraints : getConstraints();
+        updateBitSecurityUI(constraints);
+        
         if (state.activeKeypairId) {
             updateShareSection();
             if (state.partnerPublicKey) {
@@ -648,6 +679,9 @@ window.addEventListener('DOMContentLoaded', async function() {
     // Ensure we have a keypair for the default curve
     const defaultCurve = document.getElementById('ecCurve').value;
     await ensureKeypairForCurve(defaultCurve);
+    
+    // Initialize bit security indicator
+    updateBitSecurityUI(getConstraints());
 });
 
 // ========================================
